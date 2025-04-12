@@ -6,7 +6,9 @@ from fastapi import Request
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Depends
-
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from database.base import get_db
 
 
 app = FastAPI(
@@ -19,6 +21,14 @@ app = FastAPI(
 async def root():
     return {"message": "Welcome to the Installment Management System API!"}
 
+
+@app.get("/test-db")
+async def test_db(db: Session = Depends(get_db)):
+    try:
+        db.execute(text('SELECT 1'))
+        return {"message": "Database connection is working!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {e}")
 
 if __name__ == "__main__":
 
