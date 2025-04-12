@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Column, Float, DateTime, ForeignKey
+from sqlalchemy import Enum, Integer, String, Column, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
 import enum
@@ -8,19 +8,19 @@ class Role(str, enum.Enum):
     CUSTOMER = "customer"
 
 class User(Base):
-    __tablename__ = "customers"
+    __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
     email = Column(String(255))
-    role = Column(String(50), default=Role.CUSTOMER.value)
+    role = Column(Enum(Role), default=Role.CUSTOMER.value)
 
     # Relationships
-    installments = relationship("Installment", back_populates="customers")
+    installments = relationship("Installment", back_populates="users")
 
 class Installment(Base):
     __tablename__ = "installments"
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"))
+    customer_id = Column(Integer, ForeignKey("users.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
     total_amount = Column(Float)
     remaining_amount = Column(Float)
