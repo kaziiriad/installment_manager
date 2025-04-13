@@ -1,6 +1,7 @@
-from .base import SessionLocal
-from .models.user import User, Role
-from ..core.security import get_password_hash
+from .database import SessionLocal
+from models.db_models import User, Role
+from .security import get_password_hash
+from .config import settings
 
 def create_admin():
     db = SessionLocal()
