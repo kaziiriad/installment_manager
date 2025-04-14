@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models.schemas import OTPResponse
 from .client import get_redis_client
+from .config import settings
 
 
 def generate_otp(length: int = 6) -> str:
@@ -14,7 +15,7 @@ def generate_otp(length: int = 6) -> str:
 async def save_otp_to_redis(email: str, otp: str, expiry_time: int) -> None:
     """Save the OTP to Redis with an expiry time."""
     try:
-        redis_client = await get_redis_client()
+        redis_client = await get_redis_client(settings.REDIS_URL_CACHE)
         # Set the OTP with an expiry time in seconds
         await redis_client.set(email, otp, ex=expiry_time * 60)  # expiry_time in minutes
     except Exception as e:
@@ -32,7 +33,7 @@ async def create_otp(email: str, expiry_time: int = 5) -> OTPResponse:
 async def verify_otp(email: str, otp: str) -> bool:
     """Verify the OTP against the one stored in Redis."""
     try:
-        redis_client = await get_redis_client()
+        redis_client = await get_redis_client(settings.REDIS_URL_CACHE)
         stored_otp = await redis_client.get(email)
         if stored_otp is None:
             return False

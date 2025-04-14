@@ -10,7 +10,9 @@ class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://myuser:mypassword@localhost:5432/installment_db")
     
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_URL_CACHE: str = os.getenv("REDIS_URL_CACHE", "redis://localhost:6379/0")
+    REDIS_URL_QUEUE: str = os.getenv("REDIS_URL_QUEUE", "redis://localhost:6379/1")
+    
     # JWT settings
     JWT_SECRET: str = os.getenv("JWT_SECRET", "your-jwt-secret-key-for-development-only")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
