@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your OTP Code</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f9f9f9;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 1px solid #eee;">
+            <h1 style="color: #4a6ee0; margin: 0; font-size: 24px;">Installment Manager</h1>
+        </div>
+        <div style="padding: 30px 20px; text-align: center;">
+            <h2 style="color: #333; font-size: 20px;">Verify Your Email</h2>
+            <p style="margin-bottom: 20px;">Thank you for registering with Installment Manager. Please use the following OTP code to verify your email address:</p>
+            
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #4a6ee0; padding: 15px 20px; margin: 20px 0; background-color: #f0f4ff; border-radius: 6px; display: inline-block;">{{ otp }}</div>
+            
+            <p style="margin-bottom: 20px;">This code will expire in <strong>{{ expiry_minutes }} minutes</strong>.</p>
+            
+            <p style="margin-bottom: 20px;">If you didn't request this code, please ignore this email.</p>
+            
+            <!-- {% if verification_url %}
+            <a href="{{ verification_url }}" style="display: inline-block; padding: 12px 24px; background-color: #4a6ee0; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 20px;">Verify Email</a>
+            {% endif %} -->
+            
+            <!-- <p style="color: #777; font-size: 14px; margin-top: 20px;">If the button doesn't work, you can enter the OTP code manually on the verification page.</p> -->
+        </div>
+        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px; border-top: 1px solid #eee;">
+            <p style="margin: 5px 0;">This is an automated message, please do not reply to this email.</p>
+            <p style="margin: 5px 0;">&copy; 2023 Installment Manager. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

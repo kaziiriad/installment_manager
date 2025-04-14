@@ -1,21 +1,53 @@
-# sendgrid_email.py (renamed file)
+from pydantic import EmailStr
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, From, To, Content
 from core.config import settings
+import os
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-def send_email(to_email: str, subject: str, content: str):
+# Set up Jinja2 environment for email templates
+template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+env = Environment(
+    loader=FileSystemLoader(template_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
+
+def send_email(to_email: EmailStr, subject: str, content: str):
+    """
+    Send a generic email with HTML content
+    """
     message = Mail(
         from_email=From(settings.EMAIL_SENDER, "Installment Manager"),
         to_emails=To(to_email),
         subject=subject,
-        plain_text_content=content
+        html_content=Content("text/html", content),
     )
     try:
         sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
         response = sg.send(message)
-        return response.status_code
+        return response
     except Exception as e:
-        print(e)
+        print(f"Error sending email: {e}")
         return None
+
+def send_otp_email(to_email: EmailStr, otp: str, expiry_minutes: int = 5):
+    """
+    Send an OTP verification email using the template
+    """
+    # Get the template
+    template = env.get_template("otp_email.html")
     
+    # Create verification URL (optional, can be used if you have a frontend page)
+    # verification_url = f"{settings.FRONTEND_URL}/verify?email={to_email}"
+    
+    # Render the template with the OTP and expiry time
+    html_content = template.render(
+        otp=otp,
+        expiry_minutes=expiry_minutes,
+        # verification_url=verification_url
+    )
+    
+    # Send the email
+    subject = "Your Verification Code - Installment Manager"
+    return send_email(to_email, subject, html_content)
 

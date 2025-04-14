@@ -7,7 +7,7 @@ from core.security import create_access_token, verify_password, get_password_has
 from core.otp import create_otp, verify_otp
 from models.schemas import OTPResponse, OTPVerify, UserRegister, UserResponse, Token
 from models.db_models import User
-from services.email import send_email
+from services.email import send_email, send_otp_email
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -32,10 +32,10 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
 
     # Generate OTP and send it to the user
     response = await create_otp(new_user.email)
-    send_email(
+    send_otp_email(
         to_email=new_user.email,
-        subject="Verify your email",
-        content=f"Your OTP is {response.otp}. It will expire in {response.expiry_duration} minutes."
+        otp=response.otp,
+        expiry_duration=response.expiry_duration,
     )
 
     return {
