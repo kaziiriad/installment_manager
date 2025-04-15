@@ -4,6 +4,8 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from .config import settings
 from core.database import get_async_db
 from models.db_models import Role, User
@@ -31,7 +33,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION_TIME)
         
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
@@ -39,7 +41,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
 # Get current user from JWT
 async def get_current_user(
     token: str = Depends(oauth2_scheme), 
-    db: Session = Depends(get_async_db)
+    db: AsyncSession = Depends(get_async_db)
 ) -> User:
     """Get the current user from the token"""
     credentials_exception = HTTPException(
@@ -48,14 +50,17 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         email: str = payload.get("sub")
         if not email:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     
-    user = db.query(User).filter(User.email == email).first()
+    # Use the async SQLAlchemy API
+    result = await db.execute(select(User).filter(User.email == email))
+    user = result.scalar_one_or_none()
+    
     if not user:
         raise credentials_exception
     return user

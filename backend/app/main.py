@@ -11,7 +11,9 @@ from contextlib import asynccontextmanager
 # Use absolute imports
 
 from core.database import get_async_db, Base, create_tables_async
+from core.seed import create_admin
 from endpoints.auth import auth_router
+from endpoints.installments import installment_router
 from services.email import send_email, send_otp_email
 
 # Import other routers as needed
@@ -25,6 +27,9 @@ async def lifespan(app: FastAPI):
     # Setup code here (runs before application startup)
     print("Creating database tables...")
     await create_tables_async()
+    await create_admin(
+        admin_email="admin@example.com",
+    )
     
     yield  # This line yields control back to FastAPI
     
@@ -49,6 +54,7 @@ app.add_middleware(
 
 # Mount API routers
 app.include_router(auth_router)
+app.include_router(installment_router)
 
 # app.include_router(user_router, prefix="/api/v1", tags=["Users"])
 # app.include_router(product_router, prefix="/api/v1", tags=["Products"])

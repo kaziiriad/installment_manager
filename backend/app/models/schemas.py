@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator, validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone, date
 from enum import Enum
 
+# auth schemas
 class UserRole(str, Enum):
     ADMIN = "admin"
     CUSTOMER = "customer"
@@ -38,6 +39,32 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+
+# payment schemas
 class PaymentCreate(BaseModel):
-    amount: int  # in cents
-    currency: str = "usd"
+    amount: float
+
+class PaymentResponse(BaseModel):
+    id: int
+    amount: float
+    payment_date: datetime
+
+    class Config:
+        from_attributes = True
+
+# installment schemas
+class InstallmentCreate(BaseModel):
+    product_id: int
+    # total_amount: float
+    due_day: int # 1-31
+    
+    
+class InstallmentResponse(BaseModel):
+    id: int
+    total_amount: float
+    remaining_amount: float
+    due_date: date
+    product_id: int
+
+    class Config:
+        from_attributes = True

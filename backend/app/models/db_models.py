@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, Enum, Integer, String, Column, DateTime, ForeignKey
+from datetime import datetime, timedelta, timezone, date
+from dateutil.relativedelta import relativedelta
+from sqlalchemy import Boolean, Enum, Integer, String, Column, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from core.database import Base
 import enum
@@ -26,7 +28,8 @@ class Installment(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     total_amount = Column(Integer) # Total amount in cents
     remaining_amount = Column(Integer) # Remaining amount in cents
-    due_date = Column(DateTime)
+    due_date = Column(Date) # Due date of each month
+    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
 
     # Relationships
     user = relationship("User", back_populates="installments")
@@ -43,14 +46,37 @@ class Installment(Base):
     @property
     def remaining_amount_in_bdt(self):
         return self.remaining_amount / 100.0
+        
     @remaining_amount_in_bdt.setter
     def remaining_amount_in_bdt(self, value):
         self.remaining_amount = int(value * 100)
 
     @staticmethod
+    def create_due_date(day: int, reference_date: date = None) -> date:
+        """Create a date from day-of-month (handles end-of-month)"""
+        ref_date = reference_date or date.today()
+        
+        # Get last day of month
+        last_day = (ref_date.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        safe_day = min(day, last_day.day)
+        
+        return ref_date.replace(day=safe_day)
+
+    @property
+    def next_due_date(self):
+        if not self.due_date:
+            return None
+        return self.due_date + relativedelta(months=1)    
+        
+    
+
+    @staticmethod
     def calculate_remaining_amount(total_amount, payments):
+        if not payments:
+            return total_amount
+        
         total_payments = sum(payment.amount for payment in payments)
-        return total_amount - total_payments
+        return max(0, total_amount - total_payments)
     
 
 
@@ -77,7 +103,7 @@ class Payment(Base):
     id = Column(Integer, primary_key=True)
     installment_id = Column(Integer, ForeignKey("installments.id"))
     amount = Column(Integer) # Amount in cents
-    payment_date = Column(DateTime)
+    payment_date = Column(DateTime(timezone=True))
 
     # Relationships
     installment = relationship("Installment", back_populates="payments")

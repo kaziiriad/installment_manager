@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import EmailStr
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, From, To, Content
@@ -51,3 +52,19 @@ def send_otp_email(to_email: EmailStr, otp: str, expiry_minutes: int = 5):
     subject = "Your Verification Code - Installment Manager"
     return send_email(to_email, subject, html_content)
 
+def send_due_email(to_email: EmailStr, product_name: str, due_date: datetime):
+    """
+    Send a due date reminder email using the template
+    """
+    # Get the template
+    template = env.get_template("due_email.html")
+    
+    # Render the template with the product name and due date
+    html_content = template.render(
+        product_name=product_name,
+        due_date=due_date
+    )
+
+    # Send the email
+    subject = "Reminder: Installment Due - Installment Manager"
+    return send_email(to_email, subject, html_content)
