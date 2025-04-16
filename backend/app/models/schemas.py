@@ -68,3 +68,12 @@ class InstallmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# admin schemas
+class ReportResponse(BaseModel):
+    report_type: str
+    start_date: date
+    end_date: date
+    total_paid: float
+    total_due: float

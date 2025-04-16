@@ -14,6 +14,7 @@ from app.core.database import get_async_db, Base, create_tables_async
 from app.core.seed import create_admin
 from app.endpoints.auth import auth_router
 from app.endpoints.installments import installment_router
+from app.endpoints.admin import admin_router
 from app.services.email import send_email, send_otp_email
 
 # Import other routers as needed
@@ -55,7 +56,7 @@ app.add_middleware(
 # Mount API routers
 app.include_router(auth_router)
 app.include_router(installment_router)
-
+app.include_router(admin_router)
 # app.include_router(user_router, prefix="/api/v1", tags=["Users"])
 # app.include_router(product_router, prefix="/api/v1", tags=["Products"])
 # app.include_router(installment_router, prefix="/api/v1", tags=["Installments"])

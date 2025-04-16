@@ -66,8 +66,7 @@ class Installment(Base):
     def next_due_date(self):
         if not self.due_date:
             return None
-        return self.due_date + relativedelta(months=1)    
-        
+        return self.due_date + relativedelta(months=1)   
     
 
     @staticmethod
