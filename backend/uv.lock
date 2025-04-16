@@ -137,7 +137,7 @@ dependencies = [
     { name = "aioredis" },
     { name = "alembic" },
     { name = "asyncpg" },
-    { name = "celery" },
+    { name = "celery", extra = ["redis"] },
     { name = "celery-pool-asyncio" },
     { name = "fastapi" },
     { name = "jinja2" },
@@ -161,7 +161,7 @@ requires-dist = [
     { name = "aioredis", specifier = ">=2.0.1" },
     { name = "alembic", specifier = ">=1.15.2" },
     { name = "asyncpg", specifier = ">=0.30.0" },
-    { name = "celery", specifier = ">=5.5.1" },
+    { name = "celery", extras = ["async", "redis"], specifier = ">=5.5.1" },
     { name = "celery-pool-asyncio", specifier = ">=0.2.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "jinja2", specifier = ">=3.1.6" },
@@ -206,6 +206,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4c/7e/a252cc4d003bd98ec350a27f2add5c995862e042a64648b22d4c13ed73cf/celery-5.5.1.tar.gz", hash = "sha256:2af9109a10fe28155044f4c387ce0e5e7f1fc89f9584cfb4b0df94f99a5fedc7", size = 1666151 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/75/e4/9bc19817230cb88d35ff4dd4415dbb0666cca525875b4c577af47aaf59e9/celery-5.5.1-py3-none-any.whl", hash = "sha256:9f4f9e57e36000c097c1b6f7a8ab29814b82771e5439836f83915823809729c8", size = 438525 },
+]
+
+[package.optional-dependencies]
+redis = [
+    { name = "redis" },
 ]
 
 [[package]]

@@ -52,7 +52,7 @@ def send_otp_email(to_email: EmailStr, otp: str, expiry_minutes: int = 5):
     subject = "Your Verification Code - Installment Manager"
     return send_email(to_email, subject, html_content)
 
-def send_due_email(to_email: EmailStr, product_name: str, due_date: datetime):
+async def send_due_email(to_email: EmailStr, product_name: str, due_date: datetime):
     """
     Send a due date reminder email using the template
     """

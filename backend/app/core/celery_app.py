@@ -1,6 +1,6 @@
 from celery import Celery
-from core.config import settings
-from core.celery_config import beat_schedule, task_routes
+from .config import settings
+from .celery_config import beat_schedule, task_routes
 
 # Create Celery app with the queue-specific Redis URL
 app = Celery(
