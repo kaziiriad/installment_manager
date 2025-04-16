@@ -1,7 +1,7 @@
 import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from models.schemas import OTPResponse
+from app.models.schemas import OTPResponse
 from .client import get_redis_client
 from .config import settings
 

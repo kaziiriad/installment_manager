@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone, date
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import Boolean, Enum, Integer, String, Column, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
-from core.database import Base
+from app.core.database import Base
 import enum
 
 class Role(str, enum.Enum):

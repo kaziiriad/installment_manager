@@ -8,7 +8,7 @@ app = Celery(
     broker=settings.REDIS_URL_QUEUE,
     backend=settings.REDIS_URL_QUEUE,
     include=[
-        "tasks.notification",
+        "app.tasks.notification",
         # Add other task modules here as needed
     ]
 )

@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import EmailStr
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, From, To, Content
-from core.config import settings
+from app.core.config import settings
 import os
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 

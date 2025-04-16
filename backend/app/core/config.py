@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 
 # Load .env file
-load_dotenv("/mnt/c/Users/Sultan Mahmud/Desktop/innovative_internship_test/backend/.env")
+load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings"""

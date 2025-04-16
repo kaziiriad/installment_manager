@@ -9,11 +9,11 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from core.database import AsyncSessionLocal
-from models.db_models import Installment
-from services.email import send_due_email
-from core.config import settings
-from core.celery_app import app as celery
+from app.core.database import AsyncSessionLocal
+from app.models.db_models import Installment
+from app.services.email import send_due_email
+from app.core.config import settings
+from app.core.celery_app import app as celery
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ async def _send_all_notifications(days_ahead):
         logger.info(f"Found {len(upcoming_installments)} installments due in the next {days_ahead} days")
         
         for installment in upcoming_installments:
-            
+
             error = validate_installment(installment)
             if error:
                 logger.warning(f"Skipping installment {installment.id}: {error}")

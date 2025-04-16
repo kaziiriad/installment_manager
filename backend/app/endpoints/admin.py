@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
-from ..models.schemas import UserResponse
-from ..core.security import require_admin
+from app.models.schemas import UserResponse
+from app.core.security import require_admin
 
 admin_router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)], tags=["admin"])
 

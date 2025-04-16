@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .config import settings
-from core.database import get_async_db
-from models.db_models import Role, User
+from app.core.database import get_async_db
+from app.models.db_models import Role, User
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -10,11 +10,11 @@ from contextlib import asynccontextmanager
 
 # Use absolute imports
 
-from core.database import get_async_db, Base, create_tables_async
-from core.seed import create_admin
-from endpoints.auth import auth_router
-from endpoints.installments import installment_router
-from services.email import send_email, send_otp_email
+from app.core.database import get_async_db, Base, create_tables_async
+from app.core.seed import create_admin
+from app.endpoints.auth import auth_router
+from app.endpoints.installments import installment_router
+from app.services.email import send_email, send_otp_email
 
 # Import other routers as needed
 # from .endpoints.users import user_router
@@ -94,7 +94,7 @@ async def test_db(db: AsyncSession = Depends(get_async_db)):
 # Add static file serving if needed
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 

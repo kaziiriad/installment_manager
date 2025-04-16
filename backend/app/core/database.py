@@ -16,6 +16,10 @@ def get_async_database_url() -> str:
         return re.sub(r'^postgresql:\/\/', 'postgresql+asyncpg://', db_url)
     return db_url
 
+# Print the database URL for debugging
+print(f"Database URL: {settings.DATABASE_URL}")
+print(f"Async Database URL: {get_async_database_url()}")
+
 # Create async SQLAlchemy engine
 async_engine = create_async_engine(
     get_async_database_url(),
@@ -69,7 +73,7 @@ async def create_tables_async() -> None:
     async with async_engine.begin() as conn:
         # Import all models here to ensure they're registered with Base
         # This avoids circular imports
-        from models.db_models import User, Product, Installment, Payment
+        from app.models.db_models import User, Product, Installment, Payment
         
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

@@ -1,7 +1,7 @@
 from pydantic import EmailStr
 from sqlalchemy import select
 from .database import AsyncSessionLocal, SessionLocal
-from models.db_models import User, Role
+from app.models.db_models import User, Role
 from .security import get_password_hash
 from .config import settings
 

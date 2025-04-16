@@ -23,8 +23,8 @@ beat_schedule = {
 
 # Task routing configuration
 task_routes = {
-    'send_due_notification': {'queue': 'notifications'},
-    'send_all_due_notifications': {'queue': 'notifications'},
-    'check_tomorrow_due_installments': {'queue': 'notifications'},
-    'check_upcoming_due_installments': {'queue': 'notifications'},
+    'app.tasks.notification.send_due_notification': {'queue': 'notifications'},
+    'app.tasks.notification.send_all_due_notifications': {'queue': 'notifications'},
+    'app.tasks.notification.check_tomorrow_due_installments': {'queue': 'notifications'},
+    'app.tasks.notification.check_upcoming_due_installments': {'queue': 'notifications'},
 }
