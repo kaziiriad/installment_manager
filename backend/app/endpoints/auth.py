@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import EmailStr
 from app.core.database import get_async_db
-from app.core.security import create_access_token, verify_password, get_password_hash
+from app.core.security import create_access_token, verify_password, get_password_hash, get_current_user_without_verification, get_current_user
 from app.core.otp import create_otp, verify_otp
 from app.models.schemas import OTPResponse, OTPVerify, UserRegister, UserResponse, Token
 from app.models.db_models import User
@@ -43,6 +44,45 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
         "message" : "User registered successfully. Please verify your email. OTP sent.",
         "otp expiry time": response.expiry_duration
     }
+    
+@auth_router.post("/resend-otp")
+async def resend_otp_endpoint(
+    current_user: User = Depends(get_current_user_without_verification),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Resend OTP to the user's email.
+    This endpoint requires authentication but works for unverified users.
+    """
+    # Check if user is already verified
+    if current_user.is_verified:
+        return {
+            "message": "Your account is already verified."
+        }
+    
+    # Generate a new OTP
+    response = await create_otp(current_user.email)
+    
+    # Send the OTP via email
+    email_response = send_otp_email(
+        to_email=current_user.email,
+        otp=response.otp,
+        expiry_duration=response.expiry_duration,
+    )
+    
+    if not email_response or getattr(email_response, 'status_code', 500) >= 400:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send OTP email"
+        )
+    
+    return {
+        "message": f"OTP sent to {current_user.email}",
+        "status_code": getattr(email_response, 'status_code', 202),
+        "expires_in": f"{response.expiry_duration} minutes"
+    }
+
+
 @auth_router.post("/verify-otp", response_model=UserResponse)
 async def verify_otp_endpoint(otp_data: OTPVerify, db: AsyncSession = Depends(get_async_db)):
     if not verify_otp(otp_data.email, otp_data.otp):

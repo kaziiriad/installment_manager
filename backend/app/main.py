@@ -66,18 +66,6 @@ app.include_router(admin_router)
 async def root():
     return {"message": "Welcome to the Installment Management System API!"}
 
-@app.post("/send-email")
-async def send_email_endpoint(to_email: EmailStr, otp: int, expiry: int):
-    # Send an email to the specified recipient
-    response = send_otp_email(
-        to_email=to_email,
-        otp=otp,
-        expiry_minutes=expiry,
-    )
-    return {
-        "message": f"Email sent to {to_email}",
-        "status_code": response.status_code if response else "Failed to send email"
-    }
 
     # Placeholder for email sending logic
     # Implement your email sending logic here

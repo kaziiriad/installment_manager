@@ -58,6 +58,32 @@ async def get_current_user(
         raise credentials_exception
     
     # Use the async SQLAlchemy API
+    result = await db.execute(select(User).filter(User.email == email and User.is_verified))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise credentials_exception
+    return user
+
+async def get_current_user_without_verification(
+    token: str = Depends(oauth2_scheme), 
+    db: AsyncSession = Depends(get_async_db)
+) -> User:
+    """Get the current user from the token without requiring verification"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    # Use the async SQLAlchemy API - note we're not checking is_verified here
     result = await db.execute(select(User).filter(User.email == email))
     user = result.scalar_one_or_none()
     

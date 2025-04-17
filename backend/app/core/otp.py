@@ -17,7 +17,11 @@ async def save_otp_to_redis(email: str, otp: str, expiry_time: int) -> None:
     try:
         redis_client = await get_redis_client(settings.REDIS_URL_CACHE)
         # Set the OTP with an expiry time in seconds
-        await redis_client.set(email, otp, ex=expiry_time * 60)  # expiry_time in minutes
+        key_otp = f'otp:{email}'
+        existing_otp = await redis_client.get(key_otp)
+        if existing_otp:
+            print(f"OTP already exists for {email}. Overwriting...")
+        await redis_client.set(key_otp, otp, ex=expiry_time * 60)  # expiry_time in minutes
     except Exception as e:
         print(f"Error saving OTP to Redis: {e}")
         raise

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone, date
+import math
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import Boolean, Enum, Integer, String, Column, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
@@ -27,6 +28,7 @@ class Installment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
     total_amount = Column(Integer) # Total amount in cents
+    installment_amount = Column(Integer, nullable=True) # Amount to be paid each month in cents
     remaining_amount = Column(Integer) # Remaining amount in cents
     due_date = Column(Date) # Due date of each month
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
@@ -51,6 +53,13 @@ class Installment(Base):
     def remaining_amount_in_bdt(self, value):
         self.remaining_amount = int(value * 100)
 
+    @property
+    def installment_amount_in_bdt(self):
+        return self.installment_amount / 100.0 if self.installment_amount else None
+    @installment_amount_in_bdt.setter
+    def installment_amount_in_bdt(self, value):
+        self.installment_amount = int(value * 100)  # Store amount in cents
+
     @staticmethod
     def create_due_date(day: int, reference_date: date = None) -> date:
         """Create a date from day-of-month (handles end-of-month)"""
@@ -69,15 +78,19 @@ class Installment(Base):
         return self.due_date + relativedelta(months=1)   
     
 
-    @staticmethod
-    def calculate_remaining_amount(total_amount, payments):
+    
+    def calculate_remaining_amount(self, payments):
         if not payments:
-            return total_amount
+            return self.total_amount
         
         total_payments = sum(payment.amount for payment in payments)
-        return max(0, total_amount - total_payments)
+        return max(0, self.total_amount - total_payments)
     
-
+    @staticmethod
+    def calculate_installment_amount(remaining_amount, period):
+        if period <= 0:
+            raise ValueError("Number of months must be greater than zero.")
+        return math.ceil(remaining_amount / period)
 
 class Product(Base):
     __tablename__ = "products"

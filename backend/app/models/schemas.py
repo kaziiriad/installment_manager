@@ -55,7 +55,10 @@ class PaymentResponse(BaseModel):
 # installment schemas
 class InstallmentCreate(BaseModel):
     product_id: int
+    # user_id: int  # Not needed for now, but can be added if needed
     # total_amount: float
+    initial_payment: Optional[float] = None
+    period_of_installment: int = Field(gt=0, le=12, description="Number of months for installment")
     due_day: int # 1-31
     
     

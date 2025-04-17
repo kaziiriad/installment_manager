@@ -22,7 +22,7 @@ print(f"Async Database URL: {get_async_database_url()}")
 
 # Create async SQLAlchemy engine
 async_engine = create_async_engine(
-    get_async_database_url(),
+    url=get_async_database_url(),
     echo=False,  # Set to True for SQL query logging
     future=True,
 )
