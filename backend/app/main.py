@@ -16,6 +16,7 @@ from app.endpoints.auth import auth_router
 from app.endpoints.installments import installment_router
 from app.endpoints.admin import admin_router
 from app.services.email import send_email, send_otp_email
+from app.middleware.rate_limiter import SlidingWindowRateLimiter
 
 # Import other routers as needed
 # from .endpoints.users import user_router
@@ -51,6 +52,31 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Configure Sliding Window Rate Limiter
+# Define endpoint-specific rate limits (requests per window, window size in seconds)
+endpoint_limits = {
+    # Auth endpoints - more permissive for login but strict for OTP
+    "/auth/login:POST": (30, 60),  # 30 requests per 60 seconds
+    "/auth/register:POST": (10, 60),  # 10 requests per 60 seconds
+    "/auth/resend-otp:POST": (5, 60),  # 5 requests per 60 seconds
+    "/auth/verify-otp:POST": (5, 60),  # 5 requests per 60 seconds
+    
+    # Admin endpoints - more restrictive
+    "/admin/": (100, 60),  # 100 requests per 60 seconds for all admin endpoints
+    
+    # Installment endpoints
+    "/installments:POST": (20, 60),  # 20 requests per 60 seconds
+    "/installments/:GET": (60, 60),  # 60 requests per 60 seconds
+}
+
+app.add_middleware(
+    SlidingWindowRateLimiter,
+    default_rate=40,  # Default: 40 requests per window
+    default_window=60,  # Default window: 60 seconds
+    endpoint_limits=endpoint_limits,
+    whitelist_ips=["127.0.0.1"],  # Optional: whitelist local development
 )
 
 # Mount API routers
