@@ -23,6 +23,7 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
 
     hashed_password = get_password_hash(user.password)
     new_user = User(
+        name=user.name if user.name else "",
         email=user.email,
         hashed_password=hashed_password,
         is_verified=False
@@ -122,3 +123,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@auth_router.get("/me", response_model=UserResponse)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user

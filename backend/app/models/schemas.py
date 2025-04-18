@@ -10,6 +10,7 @@ class UserRole(str, Enum):
 
 class UserRegister(BaseModel):
     email: EmailStr
+    name: Optional[str] = None
     password: str
 
 class OTPResponse(BaseModel):
