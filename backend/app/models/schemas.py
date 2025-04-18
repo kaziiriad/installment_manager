@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, date
 from enum import Enum
 
@@ -39,14 +39,24 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class ProductResponse(BaseModel):
+    id: int
+    name: str
+    price_in_bdt: float
+
+    class Config:
+        from_attributes = True
 
 # payment schemas
 class PaymentCreate(BaseModel):
-    amount: float
+    amount_in_bdt: float
+    installment_id: int
+    payment_date: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class PaymentResponse(BaseModel):
     id: int
-    amount: float
+    installment_id: int
+    amount_in_bdt: float
     payment_date: datetime
 
     class Config:
@@ -80,3 +90,45 @@ class ReportResponse(BaseModel):
     end_date: date
     total_paid: float
     total_due: float
+    year: Optional[int] = None
+    period: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+# Schema for pagination information
+class PaginationInfo(BaseModel):
+    total: int
+    page: int
+    limit: int
+    pages: int
+
+# Schema for payment details in reports
+class PaymentDetail(BaseModel):
+    id: int
+    amount: float
+    payment_date: datetime
+    installment_id: int
+    user_name: str
+    user_email: str
+
+# Schema for paginated report response
+class PaginatedReportResponse(ReportResponse):
+    payments: List[Dict[str, Any]]
+    pagination: PaginationInfo
+
+# Schema for paginated payment response
+class PaginatedPaymentResponse(BaseModel):
+    items: List[PaymentResponse]
+    pagination: PaginationInfo
+    
+    class Config:
+        from_attributes = True
+
+# Schema for paginated installment response
+class PaginatedInstallmentResponse(BaseModel):
+    items: List[InstallmentResponse]
+    pagination: PaginationInfo
+
+    class Config:
+        from_attributes = True

@@ -1,11 +1,11 @@
 from datetime import datetime, timezone, date
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_db
 from app.core.security import get_current_user
 from app.models.db_models import Installment, Payment, Product, User
-from app.models.schemas import InstallmentCreate, InstallmentResponse, PaymentCreate
+from app.models.schemas import InstallmentCreate, InstallmentResponse, PaginatedInstallmentResponse
 
 installment_router = APIRouter(tags=["Installments"])
 
@@ -71,127 +71,63 @@ async def create_installment(
         await db.refresh(new_installment)
         
         # Return the created installment
-        return InstallmentResponse(
-            id=new_installment.id,
-            user_id=new_installment.user_id,
-            product_id=new_installment.product_id,
-            total_amount=new_installment.total_amount_in_bdt,
-            remaining_amount=new_installment.remaining_amount_in_bdt,
-            due_date=new_installment.due_date
-        )
+        return new_installment
     except Exception as e:
         # Rollback the session in case of an error
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create installment") from e
     
 
-@installment_router.get("/installments", response_model=list[InstallmentResponse])
+@installment_router.get("/installments", response_model=PaginatedInstallmentResponse)
 async def get_user_installments(
     db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    page: int = 1,  # Default page number
+    limit: int = 10,  # Default limit
 ):
-    # Get all installments for the current user
-    result = await db.execute(
-        select(Installment)
-        .where(Installment.user_id == current_user.id)
-        .order_by(Installment.due_date)
-    )
-    installments = result.scalars().all()
-    
-    # Return a list of InstallmentResponse objects directly
-    return [
-        {
-            "id": installment.id,
-            "user_id": installment.user_id,
-            "product_id": installment.product_id,
-            "total_amount": installment.total_amount_in_bdt,
-            "remaining_amount": installment.remaining_amount_in_bdt,
-            "due_date": installment.due_date
-        }
-        for installment in installments
-    ]
-
-@installment_router.post("/installments/{installment_id}/payments")
-async def create_payment(
-    installment_id: int,
-    payment: PaymentCreate,
-    db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(get_current_user)
-):
+    """
+    Get paginated list of installments for the current user
+    """
     try:
-        # Get the installment
+        # Calculate offset based on page and limit
+        offset = (page - 1) * limit
+        
+        # Get installments for the current user with pagination
         result = await db.execute(
             select(Installment)
-            .where(Installment.id == installment_id, Installment.user_id == current_user.id)
+            .where(Installment.user_id == current_user.id)
+            .order_by(Installment.due_date)
+            .offset(offset)
+            .limit(limit)
         )
-        installment = result.scalars().first()
+        installments = result.scalars().all()
         
-        if not installment:
-            raise HTTPException(status_code=404, detail="Installment not found")
-        
-        # Get all existing payments for this installment
-        payments_result = await db.execute(
-            select(Payment).where(Payment.installment_id == installment_id)
+        # Get total count for pagination
+        count_result = await db.execute(
+            select(func.count(Installment.id))
+            .where(Installment.user_id == current_user.id)
         )
-        existing_payments = payments_result.scalars().all()
+        total_count = count_result.scalar() or 0
         
-        # Calculate total paid so far
-        total_paid = sum(p.amount_in_bdt for p in existing_payments)
+        # Calculate total pages
+        total_pages = (total_count + limit - 1) // limit  # Ceiling division
         
-        # Calculate actual remaining amount (not rounded)
-        actual_remaining = installment.total_amount_in_bdt - total_paid
-        
-        # Handle the final payment case - adjust payment amount if it would cause overpayment
-        if payment.amount > actual_remaining:
-            raise HTTPException(status_code=400, detail="Payment exceeds remaining amount")
-        
-        # For the final payment, allow an amount that's less than the installment amount
-        # but equal to the actual remaining amount
-        is_final_payment = abs(actual_remaining - payment.amount) < 0.01
-        
-        if not is_final_payment and payment.amount < installment.installment_amount_in_bdt:
-            raise HTTPException(status_code=400, detail="Payment is less than the installment amount")
-
-        # Create new payment
-        new_payment = Payment(
-            installment_id=installment_id,
-            amount_in_bdt=payment.amount,
-            payment_date=datetime.now(timezone.utc)
+        # Return paginated response
+        return PaginatedInstallmentResponse(
+            items=installments,
+            pagination={
+                "total": total_count,
+                "page": page,
+                "limit": limit,
+                "pages": total_pages
+            }
         )
-        
-        # Add payment to database
-        db.add(new_payment)
-        await db.commit()
-        await db.refresh(new_payment)
-        
-        # Get updated list of all payments including the new one
-        payments_result = await db.execute(
-            select(Payment).where(Payment.installment_id == installment_id)
-        )
-        all_payments = payments_result.scalars().all()
-        
-        # Update remaining amount on installment using the calculation method
-        installment.remaining_amount = installment.calculate_remaining_amount(all_payments)
-        
-        # If this was the final payment (remaining amount is 0), no need to update due date
-        if installment.remaining_amount > 0:
-            installment.due_date = installment.next_due_date
-        
-        # Commit the changes
-        await db.commit()
-        await db.refresh(installment)
-        
-        return {
-            "message": "Payment successful",
-            "payment_amount": new_payment.amount_in_bdt,
-            "installment_id": installment_id,
-            "remaining_amount": installment.remaining_amount_in_bdt,
-            "payment_date": new_payment.payment_date,
-        }
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
         # Rollback the session in case of an error
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to process payment: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve installments: {str(e)}") from e
+
+

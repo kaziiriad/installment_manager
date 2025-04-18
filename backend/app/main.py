@@ -15,6 +15,8 @@ from app.core.seed import create_admin
 from app.endpoints.auth import auth_router
 from app.endpoints.installments import installment_router
 from app.endpoints.admin import admin_router
+from app.endpoints.products import product_router
+from app.endpoints.payments import payment_router
 from app.services.email import send_email, send_otp_email
 from app.middleware.rate_limiter import SlidingWindowRateLimiter
 
@@ -69,6 +71,14 @@ endpoint_limits = {
     # Installment endpoints
     "/installments:POST": (20, 60),  # 20 requests per 60 seconds
     "/installments/:GET": (60, 60),  # 60 requests per 60 seconds
+
+    # Product endpoints
+    "/products:POST": (20, 60),  # 20 requests per 60 seconds
+    "/products/:GET": (60, 60),  # 60 requests per 60 seconds
+
+    # Payment endpoints
+    "/payments:POST": (20, 60),  # 20 requests per 60 seconds
+    "/payments/:GET": (60, 60),  # 60 requests per 60 seconds
 }
 
 app.add_middleware(
@@ -83,6 +93,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(installment_router)
 app.include_router(admin_router)
+app.include_router(product_router)
+app.include_router(payment_router)
 # app.include_router(user_router, prefix="/api/v1", tags=["Users"])
 # app.include_router(product_router, prefix="/api/v1", tags=["Products"])
 # app.include_router(installment_router, prefix="/api/v1", tags=["Installments"])
