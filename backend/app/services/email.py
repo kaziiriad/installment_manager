@@ -29,6 +29,9 @@ def send_email(to_email: EmailStr, subject: str, content: str):
         return response
     except Exception as e:
         print(f"Error sending email: {e}")
+        if hasattr(e, 'body'):
+            print(e.body)
+
         return None
 
 def send_otp_email(to_email: EmailStr, otp: str, expiry_minutes: int = 5):

@@ -37,8 +37,9 @@ async def create_otp(email: str, expiry_time: int = 5) -> OTPResponse:
 async def verify_otp(email: str, otp: str) -> bool:
     """Verify the OTP against the one stored in Redis."""
     try:
+        key_otp = f'otp:{email}'
         redis_client = await get_redis_client(settings.REDIS_URL_CACHE)
-        stored_otp = await redis_client.get(email)
+        stored_otp = await redis_client.get(key_otp)
         if stored_otp is None:
             return False
             

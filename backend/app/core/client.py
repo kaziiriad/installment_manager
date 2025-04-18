@@ -1,6 +1,8 @@
+from typing import Optional
 from redis.asyncio import Redis
 
 # Create Redis client instance
+redis_client: Optional[Redis] = None
 
 async def get_redis_client(url) -> Redis:
     """

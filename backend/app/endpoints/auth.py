@@ -36,8 +36,7 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
     response = await create_otp(new_user.email)
     send_otp_email(
         to_email=new_user.email,
-        otp=response.otp,
-        expiry_duration=response.expiry_duration,
+        otp=response.otp
     )
 
     return {
@@ -48,9 +47,7 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
     
 @auth_router.post("/resend-otp")
 async def resend_otp_endpoint(
-    current_user: User = Depends(get_current_user_without_verification),
-    db: AsyncSession = Depends(get_async_db)
-):
+    current_user: User = Depends(get_current_user_without_verification)):
     """
     Resend OTP to the user's email.
     This endpoint requires authentication but works for unverified users.
@@ -67,8 +64,7 @@ async def resend_otp_endpoint(
     # Send the OTP via email
     email_response = send_otp_email(
         to_email=current_user.email,
-        otp=response.otp,
-        expiry_duration=response.expiry_duration,
+        otp=response.otp
     )
     
     if not email_response or getattr(email_response, 'status_code', 500) >= 400:
@@ -86,7 +82,7 @@ async def resend_otp_endpoint(
 
 @auth_router.post("/verify-otp", response_model=UserResponse)
 async def verify_otp_endpoint(otp_data: OTPVerify, db: AsyncSession = Depends(get_async_db)):
-    if not verify_otp(otp_data.email, otp_data.otp):
+    if not await verify_otp(otp_data.email, otp_data.otp):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid OTP"
