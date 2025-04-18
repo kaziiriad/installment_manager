@@ -10,9 +10,10 @@ export interface User {
 }
 
 export interface Product {
-  id: string;
+  id: number; // Changed from string to number to match backend
   name: string;
-  price: number; // Stored in cents in backend
+  price_in_bdt: number; // Changed to match backend response
+  // Optional frontend-only fields
   description?: string;
   category?: string;
   brand?: string;
@@ -22,26 +23,22 @@ export interface Product {
 
 export interface Installment {
   id: number;
-  user_id: number;
   product_id: number;
-  total_amount: number; // Stored in cents in backend
-  installment_amount: number | null;
-  remaining_amount: number; // Stored in cents in backend
-  due_date: string; // ISO date string
-  created_at: string; // ISO datetime string
-  // Calculated properties from backend
-  total_amount_in_bdt: number;
-  remaining_amount_in_bdt: number;
+  total_amount_in_bdt: number; // Using the property returned by backend
   installment_amount_in_bdt: number | null;
-  next_due_date: string | null;
+  remaining_amount_in_bdt: number; // Using the property returned by backend
+  due_date: string; // ISO date string
+  // Optional fields that might not be in all responses
+  user_id?: number;
+  created_at?: string; // ISO datetime string
+  next_due_date?: string | null;
 }
 
 export interface Payment {
   id: number;
   installment_id: number;
-  amount: number; // Stored in cents in backend
+  amount_in_bdt: number; // Using the property returned by backend
   payment_date: string; // ISO datetime string
-  amount_in_bdt: number; // Calculated property from backend
 }
 
 // Request/Response types to match backend schemas
@@ -67,15 +64,14 @@ export interface TokenResponse {
 }
 
 export interface PaymentCreateRequest {
-  amount: number; // Amount in BDT
+  amount_in_bdt: number; // Changed to match backend schema
   installment_id: number;
-  
 }
 
 export interface PaymentResponse {
   id: number;
   installment_id: number;
-  amount: number; // Amount in BDT
+  amount_in_bdt: number; // Changed to match backend schema
   payment_date: string; // ISO date string
 }
 
@@ -93,6 +89,48 @@ export interface InstallmentResponse {
   remaining_amount: number; // Amount in BDT
   due_date: string; // ISO date string
   product_id: number;
+}
+
+// Pagination types to match backend responses
+export interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: PaginationInfo;
+}
+
+// Removed PaginatedPaymentResponse as it is equivalent to PaginatedResponse<PaymentResponse>
+
+// Removed PaginatedInstallmentResponse as it is equivalent to PaginatedResponse<InstallmentResponse>
+
+// Report types
+export interface ReportResponse {
+  report_type: string;
+  start_date: string;
+  end_date: string;
+  total_paid: number;
+  total_due: number;
+  year?: number;
+  period?: number;
+}
+
+export interface PaymentDetail {
+  id: number;
+  amount: number;
+  payment_date: string;
+  installment_id: number;
+  user_name: string;
+  user_email: string;
+}
+
+export interface PaginatedReportResponse extends ReportResponse {
+  payments: PaymentDetail[];
+  pagination: PaginationInfo;
 }
 
 // Helper types for API responses

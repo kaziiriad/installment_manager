@@ -39,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <h3 className="text-sm font-medium text-gray-900 truncate">
           <Link to={`/product/${product.id}`}>{product.name}</Link>
         </h3>
-        <p className="mt-1 text-lg font-semibold text-brand-700">{formatPrice(product.price)}</p>
+        <p className="mt-1 text-lg font-semibold text-brand-700">{formatPrice(product.price_in_bdt)}</p>
         <p className="mt-2 text-sm text-gray-500 line-clamp-2">{product.description}</p>
         
         <div className="mt-4 flex space-x-2">

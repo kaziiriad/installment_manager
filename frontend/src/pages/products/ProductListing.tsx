@@ -5,7 +5,6 @@ import axios from 'axios';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
-import { Product } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -20,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
+import { Product, ApiError } from '@/types';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const CATEGORIES = ['Smartphones', 'Laptops', 'Cameras', 'TVs'];
@@ -48,15 +47,15 @@ export const ProductListing: React.FC = () => {
         
         // Transform the API response to match our Product type
         const transformedProducts = response.data.map((product: any) => ({
-          id: product.id.toString(),
+          id: product.id, // Now expecting a number from the backend
           name: product.name,
-          price: product.price_in_bdt,
+          price_in_bdt: product.price_in_bdt, // Updated to match backend response
           // Add default values for fields not provided by the API
           description: product.description || 'No description available',
           category: product.category || 'Uncategorized',
           brand: product.brand || 'Unknown',
           images: product.images || ['https://placehold.co/600x400?text=No+Image'],
-          installmentAvailable: product.installment_available || false,
+          installment_available: product.installment_available || false,
         }));
         
         setAllProducts(transformedProducts);
@@ -93,28 +92,28 @@ export const ProductListing: React.FC = () => {
       // Apply category filter
       if (selectedCategories.length > 0) {
         filteredProducts = filteredProducts.filter(product => 
-          selectedCategories.includes(product.category)
+          selectedCategories.includes(product.category || 'Uncategorized')
         );
       }
       
       // Apply brand filter
       if (selectedBrands.length > 0) {
         filteredProducts = filteredProducts.filter(product => 
-          selectedBrands.includes(product.brand)
+          selectedBrands.includes(product.brand || 'Unknown')
         );
       }
       
-      // Apply price range filter
+      // Apply price range filter - using price_in_bdt instead of price
       filteredProducts = filteredProducts.filter(product => 
-        product.price >= priceRange[0] && product.price <= priceRange[1]
+        product.price_in_bdt >= priceRange[0] && product.price_in_bdt <= priceRange[1]
       );
       
-      // Apply sorting
+      // Apply sorting - using price_in_bdt instead of price
       if (sortOption) {
         if (sortOption === 'price-low-high') {
-          filteredProducts.sort((a, b) => a.price - b.price);
+          filteredProducts.sort((a, b) => a.price_in_bdt - b.price_in_bdt);
         } else if (sortOption === 'price-high-low') {
-          filteredProducts.sort((a, b) => b.price - a.price);
+          filteredProducts.sort((a, b) => b.price_in_bdt - a.price_in_bdt);
         }
       }
       

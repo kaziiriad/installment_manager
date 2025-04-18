@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, CreditCard, Check, ArrowRight, Star, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag, CreditCard, Check, ArrowRight, Star, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductCard } from '@/components/products/ProductCard';
 import { InstallmentCalculator } from '@/components/installments/InstallmentCalculator';
 import { useToast } from '@/hooks/use-toast';
-import { Product } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
+import { Product, InstallmentCreateRequest } from '@/types';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,6 +28,7 @@ export const ProductDetail: React.FC = () => {
   const showInstallment = searchParams.get('installment') === 'true';
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, token } = useAuth();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [productSpecs, setProductSpecs] = useState<ProductSpec[]>([]);
@@ -35,6 +37,8 @@ export const ProductDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [creatingInstallment, setCreatingInstallment] = useState(false);
+  
 
   // Fetch product data
   useEffect(() => {
@@ -50,9 +54,9 @@ export const ProductDetail: React.FC = () => {
         
         // Transform the API response to match our Product type
         const transformedProduct: Product = {
-          id: response.data.id.toString(),
+          id: Number(response.data.id),
           name: response.data.name,
-          price: response.data.price_in_bdt,
+          price_in_bdt: Number(response.data.price_in_bdt),
           description: response.data.description || 'No description available',
           category: response.data.category || 'Uncategorized',
           brand: response.data.brand || 'Unknown',
@@ -82,9 +86,9 @@ export const ProductDetail: React.FC = () => {
           
           // Transform related products
           const transformedRelated: Product[] = relatedResponse.data.map((item: any) => ({
-            id: item.id.toString(),
+            id: Number(item.id),
             name: item.name,
-            price: item.price_in_bdt,
+            price_in_bdt: Number(item.price_in_bdt) || 0, // Ensure it's a number
             description: item.description || 'No description available',
             category: item.category || 'Uncategorized',
             brand: item.brand || 'Unknown',
@@ -92,6 +96,7 @@ export const ProductDetail: React.FC = () => {
             installmentAvailable: item.installment_available || false,
           }));
           
+          console.log('Related products:', transformedRelated); // Debug log
           setRelatedProducts(transformedRelated);
         } catch (err) {
           console.error('Error fetching related products:', err);
@@ -131,20 +136,61 @@ export const ProductDetail: React.FC = () => {
   };
 
   // Handle installment plan selection
-  const handleProceedToInstallment = (plan: {
-    months: number;
-    downPayment: number;
-    monthlyAmount: number;
-    totalAmount: number;
-  }) => {
-    if (!product) return;
+  const handleProceedToInstallment = async (installmentRequest: InstallmentCreateRequest) => {
+    if (!product || !user) {
+      // Redirect to login if user is not authenticated
+      if (!user) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to continue with installment purchase.',
+          variant: 'destructive'
+        });
+        navigate('/login', { state: { returnUrl: `/product/${id}?installment=true` } });
+        return;
+      }
+      return;
+    }
     
-    navigate('/installment-application', { 
-      state: { 
-        product,
-        plan,
-      } 
-    });
+    setCreatingInstallment(true);
+    
+    try {
+      // Create installment using the API
+      const response = await axios.post(
+        `${API_URL}/installments/`, 
+        installmentRequest,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Show success message
+      toast({
+        title: 'Installment Plan Created',
+        description: 'Your installment plan has been created successfully.',
+        variant: 'default'
+      });
+      
+      // Redirect to installments page
+      navigate('/installments');
+      
+    } catch (error: any) {
+      console.error('Error creating installment:', error);
+      
+      // Extract error message from response if available
+      const errorMessage = error.response?.data?.detail || 'There was an error creating your installment plan. Please try again.';
+      
+      // Show error message
+      toast({
+        title: 'Failed to Create Installment',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setCreatingInstallment(false);
+    }
   };
 
   // Handle buy now button click
@@ -309,7 +355,7 @@ export const ProductDetail: React.FC = () => {
                 </div>
                 <span className="text-gray-500 text-sm ml-2">124 Reviews</span>
               </div>
-              <p className="text-3xl font-semibold text-brand-700">{formatPrice(product.price)}</p>
+              <p className="text-3xl font-semibold text-brand-700">{formatPrice(product.price_in_bdt)}</p>
               
               <div className="mt-6 space-y-4">
                 <p className="text-gray-600">{product.description}</p>
@@ -345,7 +391,7 @@ export const ProductDetail: React.FC = () => {
                     
                     {product.installmentAvailable && (
                       <Button 
-                        onClick={() => navigate(`/installments?product_id=${product.id}&`)}
+                        onClick={() => navigate(`/product/${product.id}?installment=true`)}
                         className="flex-1 bg-brand-600 hover:bg-brand-700"
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
@@ -360,7 +406,7 @@ export const ProductDetail: React.FC = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                           <div className="mb-3 sm:mb-0">
                             <p className="text-sm font-semibold text-gray-900">Available on Easy Installments</p>
-                            <p className="text-sm text-gray-600">Pay as low as {formatPrice(product.price / 12)} per month</p>
+                            <p className="text-sm text-gray-600">Pay as low as {formatPrice(product.price_in_bdt / 12)} per month</p>
                           </div>
                           <Button 
                             variant="link" 
@@ -375,10 +421,21 @@ export const ProductDetail: React.FC = () => {
                   )}
                 </>
               ) : (
-                <InstallmentCalculator 
-                  productPrice={product.price} 
-                  onProceed={handleProceedToInstallment}
-                />
+                <div className="relative">
+                  {creatingInstallment && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                      <div className="flex flex-col items-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-brand-600 mb-2" />
+                        <p className="text-sm text-gray-600">Creating your installment plan...</p>
+                      </div>
+                    </div>
+                  )}
+                  <InstallmentCalculator 
+                    productId={product.id}
+                    productPrice={product.price_in_bdt} 
+                    onProceed={handleProceedToInstallment}
+                  />
+                </div>
               )}
             </div>
           </div>

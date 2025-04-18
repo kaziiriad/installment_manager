@@ -18,7 +18,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-export const DashboardAPI = {
+export const CustomerDashboardAPI = {
   // Get user installments
   getInstallments: async (): Promise<InstallmentResponse[]> => {
     try {
@@ -40,7 +40,6 @@ export const DashboardAPI = {
       throw error;
     }
   },
-
 
   // Make a payment
   makePayment: async (installmentId: number, amount: number): Promise<PaymentCreateRequest> => {

@@ -13,51 +13,50 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
+interface InstallmentCreateRequest {
+  product_id: number;
+  initial_payment: number;
+  period_of_installment: number;
+  due_day: number;
+}
+
 interface InstallmentCalculatorProps {
+  productId: number;
   productPrice: number;
-  onProceed?: (plan: {
-    months: number;
-    downPayment: number;
-    monthlyAmount: number;
-    totalAmount: number;
-  }) => void;
+  onProceed?: (plan: InstallmentCreateRequest) => void;
 }
 
 export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
+  productId,
   productPrice,
   onProceed,
 }) => {
-  const [months, setMonths] = useState(3);
+  const [periodOfInstallment, setPeriodOfInstallment] = useState(3);
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
-  const [downPayment, setDownPayment] = useState(0);
+  const [initialPayment, setInitialPayment] = useState(0);
+  const [dueDay, setDueDay] = useState(15); // Default to 15th of the month
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const { toast } = useToast();
 
-  // Interest rates based on installment period
-  const getInterestRate = (months: number) => {
-    switch (months) {
-      case 3: return 5;
-      case 6: return 8;
-      case 9: return 10;
-      case 12: return 12;
-      default: return 5;
-    }
-  };
+  // Generate array of days 1-28 for due day selection
+  const dueDays = Array.from({ length: 28 }, (_, i) => i + 1);
 
   // Calculate installment details
   useEffect(() => {
-    const interestRate = getInterestRate(months);
+    // Calculate down payment amount
     const downPaymentAmount = (productPrice * downPaymentPercent) / 100;
-    const remainingAmount = productPrice - downPaymentAmount;
-    const interest = (remainingAmount * interestRate) / 100;
-    const totalPayable = remainingAmount + interest;
-    const monthlyPayment = totalPayable / months;
     
-    setDownPayment(downPaymentAmount);
+    // Calculate remaining amount
+    const remainingAmount = productPrice - downPaymentAmount;
+    
+    // Calculate monthly payment (no interest)
+    const monthlyPayment = remainingAmount / periodOfInstallment;
+    
+    setInitialPayment(downPaymentAmount);
     setMonthlyAmount(monthlyPayment);
-    setTotalAmount(downPaymentAmount + totalPayable);
-  }, [productPrice, months, downPaymentPercent]);
+    setTotalAmount(productPrice); // Total is just the product price (no interest)
+  }, [productPrice, periodOfInstallment, downPaymentPercent]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -68,18 +67,32 @@ export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
   };
 
   const handleProceed = () => {
+    // Create the installment request object that matches the backend schema
+    const installmentRequest: InstallmentCreateRequest = {
+      product_id: productId,
+      initial_payment: initialPayment,
+      period_of_installment: periodOfInstallment,
+      due_day: dueDay
+    };
+
     if (onProceed) {
-      onProceed({
-        months,
-        downPayment,
-        monthlyAmount,
-        totalAmount,
-      });
+      onProceed(installmentRequest);
     } else {
       toast({
         title: 'Installment Plan Selected',
-        description: `${months} months plan with ${formatCurrency(downPayment)} down payment`,
+        description: `${periodOfInstallment} months plan with ${formatCurrency(initialPayment)} down payment, due on day ${dueDay} of each month`,
       });
+    }
+  };
+
+  // Helper function to get ordinal suffix for numbers (1st, 2nd, 3rd, etc.)
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
     }
   };
 
@@ -95,8 +108,8 @@ export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
               Installment Period
             </label>
             <Select
-              value={String(months)}
-              onValueChange={(value) => setMonths(Number(value))}
+              value={String(periodOfInstallment)}
+              onValueChange={(value) => setPeriodOfInstallment(Number(value))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select months" />
@@ -116,7 +129,7 @@ export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
                 Down Payment ({downPaymentPercent}%)
               </label>
               <span className="text-sm font-medium text-brand-600">
-                {formatCurrency(downPayment)}
+                {formatCurrency(initialPayment)}
               </span>
             </div>
             <Slider
@@ -133,18 +146,35 @@ export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Monthly Due Date
+            </label>
+            <Select
+              value={String(dueDay)}
+              onValueChange={(value) => setDueDay(Number(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select due day" />
+              </SelectTrigger>
+              <SelectContent>
+                {dueDays.map(day => (
+                  <SelectItem key={day} value={String(day)}>
+                    {day}{getOrdinalSuffix(day)} of each month
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="bg-gray-50 p-4 rounded-md space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Interest Rate:</span>
-              <span className="text-sm font-medium">{getInterestRate(months)}%</span>
-            </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Monthly Payment:</span>
               <span className="text-sm font-medium">{formatCurrency(monthlyAmount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Down Payment:</span>
-              <span className="text-sm font-medium">{formatCurrency(downPayment)}</span>
+              <span className="text-sm text-gray-600">Initial Payment:</span>
+              <span className="text-sm font-medium">{formatCurrency(initialPayment)}</span>
             </div>
             <div className="flex justify-between border-t pt-2 mt-2">
               <span className="text-sm font-medium text-gray-800">Total Amount:</span>
@@ -153,7 +183,7 @@ export const InstallmentCalculator: React.FC<InstallmentCalculatorProps> = ({
             <div className="flex items-center text-xs text-gray-500 mt-2">
               <CalendarIcon className="h-3 w-3 mr-1" />
               <span>
-                First payment due after approval
+                First payment due on the {dueDay}{getOrdinalSuffix(dueDay)} of next month
               </span>
             </div>
           </div>

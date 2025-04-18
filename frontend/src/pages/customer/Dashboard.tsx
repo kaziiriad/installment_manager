@@ -10,7 +10,7 @@ import { ActiveInstallments } from '@/components/dashboard/ActiveInstallments';
 import { PaymentHistory } from '@/components/dashboard/PaymentHistory';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { DashboardAPI } from '@/services/api';
+import { CustomerDashboardAPI } from '@/services/api';
 import { InstallmentResponse, PaymentResponse, PaymentCreateRequest } from '@/types/index.ts';
 
 export const CustomerDashboard: React.FC = () => {
