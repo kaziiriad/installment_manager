@@ -1,20 +1,8 @@
 # render.yaml
-databases:
-  - name: postgres
-    databaseName: ${POSTGRES_DB}
-    user: ${POSTGRES_USER}
-    plan: free
-    type: postgresql
-
-  - name: redis
-    type: redis
-    plan: free
-
 services:
-  # FastAPI Backend
+  # Backend (FastAPI)
   - type: web
     name: web
-    env: docker
     build:
       dockerfilePath: ./backend/Dockerfile
       context: .
@@ -28,58 +16,62 @@ services:
           type: redis
           name: redis
           property: connectionString
-          transform: "${value}/0"
       - key: REDIS_URL_QUEUE
         fromService:
           type: redis
           name: redis
           property: connectionString
-          transform: "${value}/1"
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: JWT_SECRET_KEY
-        sync: false
-      - group: env-group
+      - group: app-env
 
-  # Frontend Service
+  # Frontend
   - type: web
     name: frontend
-    env: docker
     build:
       dockerfilePath: ./frontend/Dockerfile
       context: .
     envVars:
       - key: VITE_API_URL
-        value: https://web.onrender.com  # Update with your web service URL
+        value: https://web.onrender.com # Update after deployment
 
   # Celery Worker
-  - type: worker
+  - type: backgroundWorker
     name: worker
-    env: docker
     build:
       dockerfilePath: ./backend/Dockerfile
       context: .
     command: python -m celery -A app.core.celery_app worker --pool=solo -l INFO -Q notifications
     envVars:
-      - group: env-group
+      - group: app-env
 
   # Celery Beat
-  - type: worker
+  - type: backgroundWorker
     name: beat
-    env: docker
     build:
       dockerfilePath: ./backend/Dockerfile
       context: .
     command: python -m celery -A app.core.celery_app beat -l INFO
     envVars:
-      - group: env-group
+      - group: app-env
+
+databases:
+  - name: postgres
+    type: postgres
+    plan: free
+    databaseName: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
+
+  - name: redis
+    type: redis
+    plan: free
 
 envGroups:
-  - name: env-group
+  - name: app-env
     environmentVariables:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
       JWT_EXPIRATION_TIME: ${JWT_EXPIRATION_TIME}
       EMAIL_SENDER: ${EMAIL_SENDER}
