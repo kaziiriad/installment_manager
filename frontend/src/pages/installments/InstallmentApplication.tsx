@@ -44,23 +44,10 @@ export const InstallmentApplication: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Personal Information
-    fullName: '',
-    email: '',
-    phone: '',
-    nationalId: '',
-    dateOfBirth: '',
-    // Address
-    address: '',
-    city: '',
-    postalCode: '',
-    // Employment Details
-    employmentStatus: 'employed',
-    employer: '',
-    monthlyIncome: '',
-    // Payment Details
-    paymentDay: '1',
-    // Terms and Conditions
-    acceptTerms: false,
+    productId: product.id,
+    initialPayment: plan.downPayment,
+    period_of_installment: plan.months,
+    due_day: paymentDay
   });
 
   // Format currency

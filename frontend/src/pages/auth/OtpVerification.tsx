@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,8 @@ export const OtpVerification: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const { verifyOtp } = useAuth();
+  const { verifyOTP } = useAuth();
+  const { resendOTP } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
@@ -57,7 +58,7 @@ export const OtpVerification: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await verifyOtp(email, otp);
+      await verifyOTP(email, otp);
       toast({
         title: 'Verification successful',
         description: 'Your account has been verified. You can now log in.',
@@ -78,7 +79,7 @@ export const OtpVerification: React.FC = () => {
     setCanResend(false);
     setTimeLeft(60);
     
-    // In a real app, you would call an API to resend OTP
+    resendOTP();
     toast({
       title: 'OTP Resent',
       description: 'A new verification code has been sent to your email.',

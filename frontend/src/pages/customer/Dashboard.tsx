@@ -4,7 +4,7 @@ import { CalendarIcon, Clock, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ActiveInstallments } from '@/components/dashboard/ActiveInstallments';
 import { PaymentHistory } from '@/components/dashboard/PaymentHistory';

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { Loader2, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,7 @@ export const Register: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await register(email, name, password);
+      await register(name, email, password);
       toast({
         title: 'Registration successful',
         description: 'Please check your email for verification code.',

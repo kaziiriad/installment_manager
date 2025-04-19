@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth'; 
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -22,12 +22,18 @@ export const Login: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
+      const success = await login(email, password);
       toast({
         title: 'Login successful',
         description: 'Welcome back to EasyPay!',
       });
-      navigate('/');
+      if (success) {
+
+        navigate('/');
+      }
+      setIsSubmitting(false);
+
+      
     } catch (error) {
       toast({
         variant: 'destructive',

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -20,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   Table, 
   TableBody, 
@@ -39,9 +38,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Installment } from '@/types';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+
+// Define the Installment type if it's not imported
+interface Installment {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  customerId: string;
+  customerName: string;
+  totalAmount: number;
+  remainingAmount: number;
+  installmentPeriod: number;
+  monthlyAmount: number;
+  startDate: string;
+  nextPaymentDate: string;
+  status: string;
+  progress: number;
+}
 
 // Mock data
 const MOCK_STATS = {
@@ -155,21 +171,27 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     // Redirect if not authenticated or not an admin
     if (!user) {
-      navigate('/login');
+      // Don't redirect immediately, wait for auth to complete
+      if (!loading) {
+        navigate('/login');
+      }
       return;
     }
 
-    if (user.role !== 'admin') {
+    // Check if user has role property and if it's not admin
+    if (user && user.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
 
     // Simulate API call to fetch data
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setRecentInstallments(MOCK_RECENT_INSTALLMENTS);
       setLoading(false);
     }, 1000);
-  }, [user, navigate]);
+
+    return () => clearTimeout(timer);
+  }, [user, navigate, loading]);
 
   // Format currency
   const formatCurrency = (amount: number) => {

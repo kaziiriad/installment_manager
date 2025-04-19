@@ -156,7 +156,7 @@ export const ProductDetail: React.FC = () => {
     try {
       // Create installment using the API
       const response = await axios.post(
-        `${API_URL}/installments/`, 
+        `${API_URL}/installments`, 
         installmentRequest,
         {
           headers: {
@@ -174,7 +174,7 @@ export const ProductDetail: React.FC = () => {
       });
       
       // Redirect to installments page
-      navigate('/installments');
+      navigate('/dashboard/');
       
     } catch (error: any) {
       console.error('Error creating installment:', error);

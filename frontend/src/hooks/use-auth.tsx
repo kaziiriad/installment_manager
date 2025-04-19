@@ -13,23 +13,24 @@ interface AuthContextType {
   logout: () => void;
   register: (email: string, password: string) => Promise<boolean>;
   verifyOTP: (email: string, otp: string) => Promise<boolean>;
+  resendOTP: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Check if user is logged in on initial load
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = sessionStorage.getItem('token');
       if (storedToken) {
         try {
-          const response = await axios.get(`${API_URL}/users/me`, {
+          const response = await axios.get(`${API_URL}/auth/me`, {
             headers: {
               Authorization: `Bearer ${storedToken}`
             }
@@ -53,16 +54,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await axios.post<TokenResponse>(`${API_URL}/auth/login`, {
-        email,
+        username: email,
         password
-      });
+      }, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+
+    );
 
       const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
+      sessionStorage.setItem('token', access_token);
       setToken(access_token);
 
       // Fetch user data
-      const userResponse = await axios.get(`${API_URL}/users/me`, {
+      const userResponse = await axios.get(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${access_token}`
         }
@@ -88,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
     toast({
@@ -98,9 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Register function
-  const register = async (email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       await axios.post(`${API_URL}/auth/register`, {
+        name,
         email,
         password
       });
@@ -109,6 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Registration Successful',
         description: 'Please check your email for the OTP to verify your account.',
       });
+
+      sessionStorage.setItem('email verification pending', email);
 
       return true;
     } catch (error: any) {
@@ -128,13 +138,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await axios.post(`${API_URL}/auth/verify`, {
         email,
         otp
-      });
+      },
+    );
 
       toast({
         title: 'Verification Successful',
         description: 'Your account has been verified. You can now log in.',
       });
-
+      sessionStorage.removeItem('email verification pending');
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Verification failed. Please try again.';
@@ -147,6 +158,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // resend OTP function
+  const resendOTP = async (): Promise<boolean> => {
+    try {
+      const email = sessionStorage.getItem('email verification pending');
+      if (!email) {
+        toast({
+          title: 'No Email Found',
+          description: 'No email found for OTP resend.',  });
+        return false;
+      }
+      await axios.post(`${API_URL}/auth/resend-otp?email=${email}`
+    );
+      toast({
+        title: 'OTP Resent',
+        description: 'A new OTP has been sent to your email.',
+      });
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to resend OTP. Please try again.';
+      toast({
+        title: 'Resend OTP Failed',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      return false;
+    }
+  };
+
+
   const value = {
     user,
     token,
@@ -154,7 +194,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     register,
-    verifyOTP
+    verifyOTP,
+    resendOTP
   };
 
   return <AuthContext.Provider value={value}> {children} </AuthContext.Provider>;
