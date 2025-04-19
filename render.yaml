@@ -33,8 +33,8 @@ services:
       - key: VITE_API_URL
         value: https://web.onrender.com # Update after deployment
 
-  # Celery Worker
-  - type: backgroundWorker
+  # Celery Worker (corrected type)
+  - type: worker  # ✅ Official type
     name: worker
     build:
       dockerfilePath: ./backend/Dockerfile
@@ -43,8 +43,8 @@ services:
     envVars:
       - group: app-env
 
-  # Celery Beat
-  - type: backgroundWorker
+  # Celery Beat (corrected type)
+  - type: worker  # ✅ Official type
     name: beat
     build:
       dockerfilePath: ./backend/Dockerfile
