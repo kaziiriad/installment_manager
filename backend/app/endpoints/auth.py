@@ -47,17 +47,20 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_async_db))
     
 @auth_router.post("/resend-otp")
 async def resend_otp_endpoint(
-    current_user: User = Depends(get_current_user_without_verification)):
+    email: EmailStr,
+    db: AsyncSession = Depends(get_async_db)):
     """
     Resend OTP to the user's email.
     This endpoint requires authentication but works for unverified users.
     """
     # Check if user is already verified
-    if current_user.is_verified:
-        return {
-            "message": "Your account is already verified."
-        }
-    
+    result = await db.execute(select(User).where(User.email == email and User.is_verified is False))
+    current_user = result.scalar()
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="User not found or already verified"
+        )
     # Generate a new OTP
     response = await create_otp(current_user.email)
     
