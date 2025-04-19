@@ -1,5 +1,6 @@
 
 export type UserRole = 'admin' | 'customer';
+export type ReportType = 'all' | 'weekly' | 'monthly' 
 
 export interface User {
   id: number;
@@ -109,6 +110,16 @@ export interface PaginatedResponse<T> {
 // Removed PaginatedInstallmentResponse as it is equivalent to PaginatedResponse<InstallmentResponse>
 
 // Report types
+
+export interface CustomType {
+  id: number;
+  amount: number;
+  payment_date: string
+  installment_id: number;
+  user_name: string;
+  user_email: string;
+}
+
 export interface ReportResponse {
   report_type: string;
   start_date: string;
@@ -116,7 +127,9 @@ export interface ReportResponse {
   total_paid: number;
   total_due: number;
   year?: number;
-  period?: number;
+  period?: ReportType;
+  payments: CustomType[];
+  pagination : PaginationInfo;
 }
 
 export interface PaymentDetail {
@@ -128,10 +141,6 @@ export interface PaymentDetail {
   user_email: string;
 }
 
-export interface PaginatedReportResponse extends ReportResponse {
-  payments: PaymentDetail[];
-  pagination: PaginationInfo;
-}
 
 // Helper types for API responses
 export interface ApiError {

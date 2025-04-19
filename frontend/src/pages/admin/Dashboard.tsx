@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bar } from 'react-chartjs-2';
+
 import { 
   BarChart, 
   LineChart, 
@@ -41,121 +44,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 
-// Define the Installment type if it's not imported
-interface Installment {
-  id: string;
-  productId: string;
-  productName: string;
-  productImage: string;
-  customerId: string;
-  customerName: string;
-  totalAmount: number;
-  remainingAmount: number;
-  installmentPeriod: number;
-  monthlyAmount: number;
-  startDate: string;
-  nextPaymentDate: string;
-  status: string;
-  progress: number;
-}
-
-// Mock data
-const MOCK_STATS = {
-  totalActiveInstallments: 245,
-  totalDueAmount: 12540000,
-  paymentsReceivedThisMonth: 2430000,
-  overduePayments: 15,
-  customers: 180,
-  products: 72,
-  revenue: {
-    current: 2430000,
-    previous: 1950000,
-    percentChange: 24.6,
-  },
-};
-
-const MOCK_RECENT_INSTALLMENTS: Installment[] = [
-  {
-    id: '1',
-    productId: '1',
-    productName: 'Samsung Galaxy S23 Ultra',
-    productImage: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=2942&auto=format&fit=crop',
-    customerId: '2',
-    customerName: 'Jane Customer',
-    totalAmount: 189999,
-    remainingAmount: 142499,
-    installmentPeriod: 12,
-    monthlyAmount: 13334,
-    startDate: '2023-09-15',
-    nextPaymentDate: '2023-11-15',
-    status: 'active',
-    progress: 25,
-  },
-  {
-    id: '2',
-    productId: '3',
-    productName: 'Dell XPS 15',
-    productImage: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=2940&auto=format&fit=crop',
-    customerId: '3',
-    customerName: 'Michael Johnson',
-    totalAmount: 249999,
-    remainingAmount: 249999,
-    installmentPeriod: 12,
-    monthlyAmount: 20833,
-    startDate: '2023-10-20',
-    nextPaymentDate: '2023-10-10',
-    status: 'overdue',
-    progress: 0,
-  },
-  {
-    id: '3',
-    productId: '2',
-    productName: 'iPhone 15 Pro Max',
-    productImage: 'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?q=80&w=2880&auto=format&fit=crop',
-    customerId: '4',
-    customerName: 'Sarah Williams',
-    totalAmount: 209999,
-    remainingAmount: 157499,
-    installmentPeriod: 6,
-    monthlyAmount: 26250,
-    startDate: '2023-10-05',
-    nextPaymentDate: '2023-11-05',
-    status: 'active',
-    progress: 25,
-  },
-  {
-    id: '4',
-    productId: '5',
-    productName: 'Sony Alpha A7 IV',
-    productImage: 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?q=80&w=2851&auto=format&fit=crop',
-    customerId: '5',
-    customerName: 'Robert Brown',
-    totalAmount: 279999,
-    remainingAmount: 279999,
-    installmentPeriod: 9,
-    monthlyAmount: 31111,
-    startDate: '2023-10-25',
-    nextPaymentDate: '2023-10-15',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: '5',
-    productId: '7',
-    productName: 'LG OLED C2 65"',
-    productImage: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?q=80&w=2940&auto=format&fit=crop',
-    customerId: '6',
-    customerName: 'Emily Davis',
-    totalAmount: 299999,
-    remainingAmount: 149999,
-    installmentPeriod: 12,
-    monthlyAmount: 25000,
-    startDate: '2023-09-01',
-    nextPaymentDate: '2023-11-01',
-    status: 'active',
-    progress: 50,
-  },
-];
+import { AdminDashboardAPI } from '@/services/api';
+import { ReportResponse, User, ReportType } from '@/types/index.ts';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -163,35 +53,98 @@ export const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(MOCK_STATS);
-  const [recentInstallments, setRecentInstallments] = useState<Installment[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  // const [stats, setStats] = useState();
+  // const [recentInstallments, setRecentInstallments] = useState([]);
+  // const [searchTerm, setSearchTerm] = useState('');
+  // const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Customer report state
+  const [customerReport, setCustomerReport] = useState<ReportResponse | null>(null);
+  const [reportLoading, setReportLoading] = useState(true);
+  const [reportType, setReportType] = useState<ReportType>('all');
+  const [reportPage, setReportPage] = useState(1);
+  const [reportLimit] = useState(5);
+  
+  // Customer pagination state
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customertLimit] = useState(5);
+  // Customers state
+  const [customers, setCustomers] = useState<User[]>([]);
+  const [customerLoading, setCustomerLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect if not authenticated or not an admin
-    if (!user) {
-      // Don't redirect immediately, wait for auth to complete
-      if (!loading) {
+    const checkAuthAndLoadData = async () => {
+      if (!user) {
         navigate('/login');
+        return;
       }
-      return;
+  
+      if (user.role !== 'admin') {
+        navigate('/dashboard');
+        return;
+      }
+  
+      try {
+        // Load both datasets simultaneously
+        await Promise.all([
+          AdminDashboardAPI.customerReport(reportPage, reportLimit, reportType),
+          AdminDashboardAPI.getCustomers(customerPage, customertLimit)
+        ]);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard data',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    checkAuthAndLoadData();
+  }, [user, navigate]);
+
+
+  // Fetch customer report data
+useEffect(() => {
+  const fetchCustomerReport = async () => {
+    try {
+      setReportLoading(true);
+      const data = await AdminDashboardAPI.customerReport(reportPage, reportLimit, reportType);
+      setCustomerReport(data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load report' });
+    } finally {
+      setReportLoading(false);
     }
+  };
 
-    // Check if user has role property and if it's not admin
-    if (user && user.role !== 'admin') {
-      navigate('/dashboard');
-      return;
+  if (user?.role === 'admin') {
+    fetchCustomerReport();
+  }
+}, [reportType, reportPage]);
+
+
+  // Fetch customers data
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setCustomerLoading(true);
+        const data = await AdminDashboardAPI.getCustomers(customerPage, customertLimit);
+        // Make sure API returns PaginatedResponse<User>
+        setCustomers(data.items); // Access the items property
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to load customers' });
+      } finally {
+        setCustomerLoading(false);
+      }
+    };
+  
+    if (user?.role === 'admin') {
+      fetchCustomers();
     }
-
-    // Simulate API call to fetch data
-    const timer = setTimeout(() => {
-      setRecentInstallments(MOCK_RECENT_INSTALLMENTS);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user, navigate, loading]);
+  }, [customerPage]);
+  
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -211,20 +164,16 @@ export const AdminDashboard: React.FC = () => {
     });
   };
 
-  // Filter installments based on search term and status filter
-  const filteredInstallments = recentInstallments.filter((installment) => {
-    const matchesSearch = 
-      searchTerm === '' || 
-      installment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      installment.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      installment.id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      installment.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Format date and time
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -242,446 +191,254 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Handle view installment details
-  const handleViewInstallment = (id: string) => {
-    toast({
-      title: 'Viewing Installment',
-      description: `Viewing details for installment #${id}`,
-    });
-    // In a real app, this would navigate to the installment details page
+
+  // Handle report type change
+  const handleReportTypeChange = (value: ReportType) => {
+    setReportType(value);
+    setReportPage(1); // Reset to first page when changing report type
   };
 
-  // Handle approve installment
-  const handleApproveInstallment = (id: string) => {
-    toast({
-      title: 'Installment Approved',
-      description: `Installment #${id} has been approved`,
-    });
-    
-    // Update local state to reflect the change
-    setRecentInstallments((prev) =>
-      prev.map((installment) => 
-        installment.id === id 
-          ? { ...installment, status: 'active' } 
-          : installment
-      )
-    );
+  // Handle pagination
+  const handleNextReportPage = () => {
+    if (reportPage < customerReport.pagination.pages) {
+      setReportPage(reportPage + 1);
+    }
   };
 
-  if (loading) {
+  const handlePrevReportPage = () => {
+    if (reportPage > 1) {
+      setReportPage(reportPage - 1);
+    }
+  };
+
+  // Handle customer pagination
+  const handleNextCustomerPage = () => {
+    if (customerPage < customers.length / customertLimit) {
+      setCustomerPage(customerPage + 1);
+    }
+  };
+  const handlePrevCustomerPage = () => {
+    if (customerPage > 1) {
+      setCustomerPage(customerPage - 1);
+    }
+  };
+  // Handle search term change
+
+  // Handle status filter change
+  // const handleStatusFilterChange = (value: ReportType) => {
+  //   setStatusFilter(value);
+  // };
+
+  if (loading || reportLoading || customerLoading) {
     return (
-      <>
-        <Navbar />
-        <main className="page-container py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="h-72 bg-gray-200 rounded"></div>
-              <div className="h-72 bg-gray-200 rounded"></div>
-            </div>
-            <div className="h-96 bg-gray-200 rounded"></div>
-          </div>
-        </main>
-        <Footer />
-      </>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="page-container py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
-        
-        {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div>
+      <Navbar>
+        <main className="container mx-auto p-4 pt-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <div className="flex gap-2">
+            <Select value={reportType} onValueChange={handleReportTypeChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Report Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly Report</SelectItem>
+                <SelectItem value="monthly">Monthly Report</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Active Installments</CardTitle>
-              <CreditCard className="h-4 w-4 text-gray-500" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalActiveInstallments}</div>
-              <p className="text-xs text-gray-500 mt-1">Currently active payment plans</p>
+              <div className="text-2xl font-bold">{customerReport?.pagination.total || 0}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Due Amount</CardTitle>
-              <DollarSign className="h-4 w-4 text-gray-500" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.totalDueAmount)}</div>
-              <p className="text-xs text-gray-500 mt-1">Total outstanding balance</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Revenue This Month</CardTitle>
-              <LineChart className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.revenue.current)}</div>
-              <div className="flex items-center text-xs mt-1">
-                {stats.revenue.percentChange > 0 ? (
-                  <>
-                    <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-green-500 font-medium">
-                      {stats.revenue.percentChange}% from last month
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
-                    <span className="text-red-500 font-medium">
-                      {Math.abs(stats.revenue.percentChange)}% from last month
-                    </span>
-                  </>
-                )}
+              <div className="text-2xl font-bold">
+                {formatCurrency(customerReport?.total_paid || 0)}
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Overdue Payments</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-gray-500" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.overduePayments}</div>
-              <p className="text-xs text-red-500 mt-1 font-medium">
-                Requires immediate attention
-              </p>
+              <div className="text-2xl font-bold">
+                {formatCurrency(customerReport?.total_due || 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Active Installments</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {customerReport?.payments?.length || 0}
+              </div>
             </CardContent>
           </Card>
         </div>
-        
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Monthly Revenue</CardTitle>
+              <CardTitle>Payment Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
-                <div className="text-center text-gray-500">
-                  <BarChart className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p>Revenue chart will be displayed here</p>
+              <div className="h-[300px]">
+                {/* Replace with your chart implementation */}
+                <div className="flex items-center justify-center h-full bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Chart Placeholder</span>
+                  <Bar
+                      data={{
+                        labels: ['Paid', 'Due'],
+                        datasets: [{
+                          label: 'Amount',
+                          data: [customerReport?.total_paid || 0, customerReport?.total_due || 0],
+                          backgroundColor: ['#4F46E5', '#EF4444']
+                        }]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false
+                      }}
+                    />
+
                 </div>
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
+              <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="overview">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="customers">Customers</TabsTrigger>
-                  <TabsTrigger value="products">Products</TabsTrigger>
-                </TabsList>
-                <TabsContent value="overview">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1 border rounded-lg p-3 text-center">
-                      <Users className="h-5 w-5 mx-auto text-gray-400 mb-1" />
-                      <div className="text-2xl font-bold">{stats.customers}</div>
-                      <div className="text-xs text-gray-500">Total Customers</div>
-                    </div>
-                    <div className="space-y-1 border rounded-lg p-3 text-center">
-                      <ShoppingBag className="h-5 w-5 mx-auto text-gray-400 mb-1" />
-                      <div className="text-2xl font-bold">{stats.products}</div>
-                      <div className="text-xs text-gray-500">Total Products</div>
-                    </div>
-                    <div className="space-y-1 border rounded-lg p-3 text-center">
-                      <Calendar className="h-5 w-5 mx-auto text-gray-400 mb-1" />
-                      <div className="text-2xl font-bold">16</div>
-                      <div className="text-xs text-gray-500">New Applications</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="text-sm font-medium">Product Categories</div>
-                      <div className="text-xs text-gray-500">Sales Distribution</div>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>Smartphones</span>
-                          <span>45%</span>
-                        </div>
-                        <Progress value={45} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>Laptops</span>
-                          <span>30%</span>
-                        </div>
-                        <Progress value={30} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>TVs</span>
-                          <span>15%</span>
-                        </div>
-                        <Progress value={15} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>Cameras</span>
-                          <span>10%</span>
-                        </div>
-                        <Progress value={10} className="h-2" />
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="customers">
-                  <div className="space-y-4">
-                    <div className="text-sm">
-                      <div className="flex justify-between font-medium">
-                        <span>New Customer Growth</span>
-                        <span className="text-green-600">+12%</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        23 new customers this month
-                      </div>
-                    </div>
-                    
-                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
-                      <div className="text-center text-gray-500">
-                        <LineChart className="h-6 w-6 mx-auto mb-1 text-gray-400" />
-                        <p className="text-xs">Customer growth chart</p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-sm">
-                      <div className="font-medium mb-2">Top Customers</div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>Emily Davis</span>
-                          <span className="font-medium">{formatCurrency(299999)}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>Robert Brown</span>
-                          <span className="font-medium">{formatCurrency(279999)}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>Michael Johnson</span>
-                          <span className="font-medium">{formatCurrency(249999)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="products">
-                  <div className="space-y-4">
-                    <div className="text-sm">
-                      <div className="flex justify-between font-medium">
-                        <span>Product Performance</span>
-                        <span className="text-green-600">22 active</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        5 new products added this month
-                      </div>
-                    </div>
-                    
-                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
-                      <div className="text-center text-gray-500">
-                        <BarChart className="h-6 w-6 mx-auto mb-1 text-gray-400" />
-                        <p className="text-xs">Product performance chart</p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-sm">
-                      <div className="font-medium mb-2">Top Products</div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>iPhone 15 Pro Max</span>
-                          <span className="font-medium">32 units</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>Samsung Galaxy S23 Ultra</span>
-                          <span className="font-medium">28 units</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <span>MacBook Pro 16</span>
-                          <span className="font-medium">19 units</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Recent installments */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <CardTitle className="text-lg">Recent Installment Applications</CardTitle>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                  <Input
-                    type="search"
-                    placeholder="Search installments..."
-                    className="pl-8 max-w-xs"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Filter status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <Button variant="outline" size="icon" title="Export Data">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Product</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Progress</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Next Payment</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInstallments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-6 text-gray-500">
-                        No installments found matching your filters.
+                  {customerReport?.payments.slice(0, 5).map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>{payment.user_name}</TableCell>
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Completed</Badge>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredInstallments.map((installment) => (
-                      <TableRow key={installment.id}>
-                        <TableCell className="font-medium">#{installment.id}</TableCell>
-                        <TableCell>{installment.customerName}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{installment.productName}</TableCell>
-                        <TableCell>{formatCurrency(installment.totalAmount)}</TableCell>
-                        <TableCell>
-                          <div className="w-24">
-                            <div className="flex justify-between text-xs mb-1">
-                              <span>{installment.progress}%</span>
-                              <span>{formatCurrency(installment.totalAmount - installment.remainingAmount)}</span>
-                            </div>
-                            <Progress value={installment.progress} className="h-2" />
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(installment.status)}</TableCell>
-                        <TableCell>{formatDate(installment.nextPaymentDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              onClick={() => handleViewInstallment(installment.id)}
-                            >
-                              View
-                            </Button>
-                            
-                            {installment.status === 'pending' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2 text-green-600 hover:text-green-700"
-                                onClick={() => handleApproveInstallment(installment.id)}
-                              >
-                                Approve
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Customer List */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Customer List</CardTitle>
+              <Input 
+                placeholder="Search customers..." 
+                className="max-w-[300px]"
+                // Add search functionality
+              />
             </div>
-            
-            <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-              <div>Showing {filteredInstallments.length} of {recentInstallments.length} installments</div>
-              <Button variant="outline" size="sm">
-                View All Installments
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Verified</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>{customer.name}</TableCell>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={customer.is_verified ? 'default' : 'secondary'}>
+                        {customer.is_verified ? 'Verified' : 'Pending'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge('active')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {((customerPage - 1) * customertLimit) + 1} to{' '}
+              {Math.min(customerPage * customertLimit, customers.length)} of{' '}
+              {customers.length} customers
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handlePrevCustomerPage}
+                disabled={customerPage === 1}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleNextCustomerPage}
+                disabled={customerPage * customertLimit >= customers.length}
+              >
+                Next
               </Button>
             </div>
-          </CardContent>
+          </CardFooter>
         </Card>
-        
-        {/* Quick actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <Button 
-            className="h-auto py-6 flex flex-col items-center justify-center bg-brand-600 hover:bg-brand-700"
-            onClick={() => navigate('/admin/installments')}
-          >
-            <CreditCard className="h-6 w-6 mb-2" />
-            <span className="text-sm">Manage Installments</span>
-          </Button>
-          
-          <Button 
-            className="h-auto py-6 flex flex-col items-center justify-center bg-brand-600 hover:bg-brand-700"
-            onClick={() => navigate('/admin/customers')}
-          >
-            <Users className="h-6 w-6 mb-2" />
-            <span className="text-sm">Manage Customers</span>
-          </Button>
-          
-          <Button 
-            className="h-auto py-6 flex flex-col items-center justify-center bg-brand-600 hover:bg-brand-700"
-            onClick={() => navigate('/admin/products')}
-          >
-            <ShoppingBag className="h-6 w-6 mb-2" />
-            <span className="text-sm">Manage Products</span>
-          </Button>
-          
-          <Button 
-            className="h-auto py-6 flex flex-col items-center justify-center bg-brand-600 hover:bg-brand-700"
-            onClick={() => navigate('/admin/reports')}
-          >
-            <BarChart className="h-6 w-6 mb-2" />
-            <span className="text-sm">Generate Reports</span>
-          </Button>
-        </div>
-      </main>
-      <Footer />
-    </>
+        </main>
+        <Footer />
+      </Navbar>
+    </div>
   );
 };
