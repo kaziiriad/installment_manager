@@ -39,7 +39,8 @@ The project is organized into two main directories:
 - SQLAlchemy (PostgreSQL)
 - Alembic (Database Migrations)
 - Docker & Docker Compose
-- Redis & Celery (for background tasks like sending emails)
+- Redis & Celery (for background tasks)
+- SendGrid (for email delivery)
 
 ## Getting Started
 
