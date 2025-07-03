@@ -46,7 +46,7 @@ export const ProductListing: React.FC = () => {
         const response = await axios.get(`${API_URL}/products/`);
         
         // Transform the API response to match our Product type
-        const transformedProducts = response.data.map((product: any) => ({
+        const transformedProducts = response.data.map((product: Product) => ({
           id: product.id, // Now expecting a number from the backend
           name: product.name,
           price_in_bdt: product.price_in_bdt, // Updated to match backend response

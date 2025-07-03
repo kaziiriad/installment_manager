@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 # Use absolute imports
 
 from app.core.database import get_async_db, Base, create_tables_async
-from app.core.seed import create_admin
+from app.core.seed import create_admin, seed_products
 from app.endpoints.auth import auth_router
 from app.endpoints.installments import installment_router
 from app.endpoints.admin import admin_router
@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
     await create_admin(
         admin_email="admin@example.com",
     )
+    await seed_products()
     
     yield  # This line yields control back to FastAPI
     

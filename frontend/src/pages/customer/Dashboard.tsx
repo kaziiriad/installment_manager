@@ -11,15 +11,15 @@ import { PaymentHistory } from '@/components/dashboard/PaymentHistory';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CustomerDashboardAPI } from '@/services/api';
-import { InstallmentResponse, PaymentResponse, PaymentCreateRequest } from '@/types/index.ts';
+import { InstallmentResponse, PaymentResponse, PaymentCreateRequest } from '@/types';
 
 export const CustomerDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [installments, setInstallments] = useState<InstallmentResponse[]>([]);
-  const [paymentHistory, setPaymentHistory] = useState<PaymentResponse[]>([]);
+  const [installments, setInstallments] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [stats, setStats] = useState<{
     totalActiveInstallments: number;
     totalDueAmount: number;
@@ -34,7 +34,7 @@ export const CustomerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Function to transform installment data from API to frontend model
-  const transformInstallmentData = (data: InstallmentResponse[]): InstallmentResponse[] => {
+  const transformInstallmentData = (data: InstallmentResponse[]): any[] => {
     return data.map(item => ({
       id: item.id.toString(),
       productId: item.product_id.toString(),
@@ -54,12 +54,14 @@ export const CustomerDashboard: React.FC = () => {
   };
 
   // Function to transform payment history data from API to frontend model
-  const transformPaymentData = (data: PaymentResponse[]): PaymentResponse[] => {
+  const transformPaymentData = (data: PaymentResponse[]): any[] => {
     return data.map(payment => ({
-      ...payment,
       id: payment.id.toString(),
-      installment_id: payment.installment_id.toString(),
-      payment_date: payment.payment_date,
+      installmentId: payment.installment_id.toString(),
+      amount: payment.amount_in_bdt,
+      date: payment.payment_date,
+      method: 'credit_card', // Default payment method
+      status: 'success', // Default status
     }));
   };
 
@@ -68,14 +70,22 @@ export const CustomerDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch installments using the DashboardAPI
-      const installmentsData = await DashboardAPI.getInstallments();
-      const transformedInstallments = transformInstallmentData(installmentsData);
+      // Fetch installments using the CustomerDashboardAPI
+      const installmentsData = await CustomerDashboardAPI.getInstallments();
+      console.log('Installments API response:', installmentsData);
+      
+      // Ensure data is an array
+      const installmentsArray = Array.isArray(installmentsData) ? installmentsData : [];
+      const transformedInstallments = transformInstallmentData(installmentsArray);
       setInstallments(transformedInstallments);
       
-      // Fetch payment history using the DashboardAPI
-      const paymentsData = await DashboardAPI.getPaymentHistory();
-      const transformedPayments = transformPaymentData(paymentsData);
+      // Fetch payment history using the CustomerDashboardAPI
+      const paymentsData = await CustomerDashboardAPI.getPaymentHistory();
+      console.log('Payments API response:', paymentsData);
+      
+      // Ensure data is an array
+      const paymentsArray = Array.isArray(paymentsData) ? paymentsData : [];
+      const transformedPayments = transformPaymentData(paymentsArray);
       setPaymentHistory(transformedPayments);
       
       // Calculate dashboard stats based on the fetched data
@@ -112,22 +122,27 @@ export const CustomerDashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    // Don't do anything while auth is loading
+    if (authLoading) {
+      return;
+    }
+    
     // Redirect if not authenticated or not a customer
     if (!user) {
       navigate('/login');
       return;
     }
 
-    if (user.role !== 'customer') {
+    if (user.role?.toUpperCase() !== 'CUSTOMER') {
       navigate('/admin/dashboard');
       return;
     }
 
     // Fetch data from API
     fetchDashboardData();
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
-  const handleMakePayment = async (installmentId: number) => {
+  const handleMakePayment = async (installmentId: string) => {
     try {
       // Find the installment to get the amount
       const installment = installments.find(inst => inst.id === installmentId);
@@ -141,10 +156,9 @@ export const CustomerDashboard: React.FC = () => {
       }
 
       // Make payment using the API
-      await DashboardAPI.makePayment(
-        installmentId,
-        installment.monthlyAmount,
-        'credit_card' // Default payment method
+      await CustomerDashboardAPI.makePayment(
+        parseInt(installmentId),
+        installment.monthlyAmount
       );
 
       toast({
@@ -191,7 +205,7 @@ export const CustomerDashboard: React.FC = () => {
     });
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <>
         <Navbar />

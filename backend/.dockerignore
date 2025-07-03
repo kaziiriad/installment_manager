@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Development
+.git/
+.gitignore
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+.env
+.env.*
+*.log
+*.md
+.vscode/
+.idea/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Testing
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+*.rst
+*.txt
+
+# OS
+.DS_Store
+Thumbs.db

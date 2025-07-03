@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'customer';
+export type UserRole = 'ADMIN' | 'CUSTOMER';
 export type ReportType = 'all' | 'weekly' | 'monthly' 
 
 export interface User {

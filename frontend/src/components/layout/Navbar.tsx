@@ -53,7 +53,7 @@ export const Navbar: React.FC = () => {
                 Products
               </Link>
               {user && (
-                <Link to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} className="text-gray-900 hover:text-brand-600 px-3 py-2 text-sm font-medium">
+                <Link to={user.role.toUpperCase() === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} className="text-gray-900 hover:text-brand-600 px-3 py-2 text-sm font-medium">
                   Dashboard
                 </Link>
               )}
@@ -86,7 +86,7 @@ export const Navbar: React.FC = () => {
                   <DropdownMenuContent>
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate(user.role === 'admin' ? '/admin/dashboard' : '/dashboard')}>
+                    <DropdownMenuItem onClick={() => navigate(user && user.role.toUpperCase() === 'ADMIN' ? '/admin/dashboard' : '/dashboard')}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Dashboard</span>
                     </DropdownMenuItem>
@@ -141,7 +141,7 @@ export const Navbar: React.FC = () => {
               Products
             </Link>
             {user && (
-              <Link to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} className="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-brand-600 rounded-md">
+              <Link to={user && user.role.toUpperCase() === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} className="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-brand-600 rounded-md">
                 Dashboard
               </Link>
             )}

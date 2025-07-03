@@ -25,13 +25,7 @@ async def get_products(
     result = await db.execute(query)
     products = result.scalars().all()
     
-    if not products:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No products found"
-        )
-    
-    return products  # Pydantic will handle the conversion automatically
+    return products  # Return empty list if no products, don't raise 404
 
 @product_router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(

@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { InstallmentResponse, PaymentResponse, PaymentCreateRequest, ReportResponse, User, PaginatedResponse } from '@/types/index.ts';
-import { ReportType } from '@/types/index.ts';
+import { InstallmentResponse, PaymentResponse, PaymentCreateRequest, ReportResponse, User, PaginatedResponse, ReportType } from '@/types';
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}` || 'http://localhost:8000/',
@@ -9,7 +8,7 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,6 +22,11 @@ export const CustomerDashboardAPI = {
   getInstallments: async (): Promise<InstallmentResponse[]> => {
     try {
       const response = await api.get('/installments');
+      // Handle paginated response
+      if (response.data && response.data.items) {
+        return response.data.items;
+      }
+      // Fallback to direct array if not paginated
       return response.data;
     } catch (error) {
       console.error('Error fetching installments:', error);
@@ -33,7 +37,12 @@ export const CustomerDashboardAPI = {
   // Get payment history
   getPaymentHistory: async (): Promise<PaymentResponse[]> => {
     try {
-      const response = await api.get('/payments/');
+      const response = await api.get('/payments');
+      // Handle paginated response
+      if (response.data && response.data.items) {
+        return response.data.items;
+      }
+      // Fallback to direct array if not paginated
       return response.data;
     } catch (error) {
       console.error('Error fetching payment history:', error);
@@ -61,7 +70,7 @@ export const AdminDashboardAPI = {
   // Get all payments
   customerReport: async (page: number, limit: number, report_type: ReportType): Promise<ReportResponse> => {
     try {
-      const response = await api.get(`/admin/reports/?report_type=${report_type}&page=${page}&limit=${limit}`);
+      const response = await api.get(`/admin/reports?report_type=${report_type}&page=${page}&limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching payments:', error);

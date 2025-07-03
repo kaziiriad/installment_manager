@@ -2,23 +2,30 @@ FROM python:3.10-slim
 
 WORKDIR /app
 ENV PYTHONPATH=/app
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml first for better layer caching
-COPY pyproject.toml .
+# Install uv
+ENV VIRTUAL_ENV=/app/.venv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    . $HOME/.cargo/env && \
+    uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$HOME/.cargo/bin:$PATH"
 
-# Install the package in development mode
-RUN pip install --upgrade pip && \
-    pip install -U setuptools wheel && \
-    pip install -e .
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install the package in development mode using uv
+RUN . $HOME/.cargo/env && \
+    uv pip install --no-cache -e .
 
 # Copy application code
 COPY . .

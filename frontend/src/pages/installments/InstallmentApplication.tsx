@@ -32,6 +32,26 @@ export const InstallmentApplication: React.FC = () => {
   const { toast } = useToast();
   const state = location.state as LocationState;
   
+  // Form state - must be declared before any returns
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState(() => {
+    if (!state?.product || !state?.plan) {
+      return {
+        productId: '',
+        initialPayment: 0,
+        period_of_installment: 0,
+        due_day: 1
+      };
+    }
+    return {
+      // Personal Information
+      productId: state.product.id,
+      initialPayment: state.plan.downPayment,
+      period_of_installment: state.plan.months,
+      due_day: 1
+    };
+  });
+  
   // If no state is provided, redirect to products page
   if (!state?.product || !state?.plan) {
     navigate('/products');
@@ -39,16 +59,6 @@ export const InstallmentApplication: React.FC = () => {
   }
 
   const { product, plan } = state;
-  
-  // Form state
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // Personal Information
-    productId: product.id,
-    initialPayment: plan.downPayment,
-    period_of_installment: plan.months,
-    due_day: paymentDay
-  });
 
   // Format currency
   const formatCurrency = (amount: number) => {

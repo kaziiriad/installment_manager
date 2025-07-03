@@ -28,24 +28,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 // Mock user data for demonstration purposes
-const MOCK_USERS = [
-  {
-    id: '1',
-    name: 'John Admin',
-    email: 'admin@example.com',
-    role: 'admin' as UserRole,
-    password: 'password123',
-    verified: true,
-  },
-  {
-    id: '2',
-    name: 'Jane Customer',
-    email: 'customer@example.com',
-    role: 'customer' as UserRole,
-    password: 'password123',
-    verified: true,
-  },
-];
+
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -53,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if user is already logged in (from session storage)
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -65,11 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find user by email and password
-      const matchedUser = MOCK_USERS.find(
-        u => u.email === email && u.password === password
-      );
       
       if (!matchedUser) {
         throw new Error('Invalid email or password');
@@ -83,8 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { password: _, ...userWithoutPassword } = matchedUser;
       setUser(userWithoutPassword);
       
-      // Store user in session storage
-      sessionStorage.setItem('user', JSON.stringify(userWithoutPassword));
+      // Store user in local storage
+      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -98,12 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user with this email already exists
-      const existingUser = MOCK_USERS.find(u => u.email === email);
-      if (existingUser) {
-        throw new Error('User with this email already exists');
-      }
       
       // In a real app, you would create a new user in your backend
       console.log('Registered new user:', { email, name });
@@ -139,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
   };
 
   const requestPasswordReset = async (email: string) => {
@@ -147,11 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const existingUser = MOCK_USERS.find(u => u.email === email);
-      if (!existingUser) {
-        throw new Error('No user found with this email');
-      }
       
       // In a real app, you would send a password reset email
       console.log('Password reset requested for:', email);

@@ -3,7 +3,9 @@ version: '3.8'
 
 services:
   web:
-    build: ./backend  # Changed from . to ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend:/app  # Changed from . to ./backend
@@ -24,8 +26,24 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - installment-net
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      args:
+        - VITE_API_URL=http://localhost:8000
+    ports:
+      - "80:8080"
+    depends_on:
+      - web
     networks:
       - installment-net
 
@@ -63,7 +81,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"
     networks:

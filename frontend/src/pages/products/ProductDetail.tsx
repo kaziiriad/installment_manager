@@ -85,7 +85,7 @@ export const ProductDetail: React.FC = () => {
           });
           
           // Transform related products
-          const transformedRelated: Product[] = relatedResponse.data.map((item: any) => ({
+          const transformedRelated: Product[] = relatedResponse.data.map((item: Product) => ({
             id: Number(item.id),
             name: item.name,
             price_in_bdt: Number(item.price_in_bdt) || 0, // Ensure it's a number
@@ -176,11 +176,11 @@ export const ProductDetail: React.FC = () => {
       // Redirect to installments page
       navigate('/dashboard/');
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating installment:', error);
       
       // Extract error message from response if available
-      const errorMessage = error.response?.data?.detail || 'There was an error creating your installment plan. Please try again.';
+      const errorMessage = axios.isAxiosError(error) ? error.response?.data?.detail || 'There was an error creating your installment plan. Please try again.' : 'There was an error creating your installment plan. Please try again.';
       
       // Show error message
       toast({
